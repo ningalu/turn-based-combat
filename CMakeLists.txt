@@ -15,21 +15,7 @@ include(cmake/variables.cmake)
 
 # ---- Declare library ----
 
-add_library(
-    ningalu-turn-based-combat-2_lib OBJECT
-    source/lib.cpp
-)
-
-target_include_directories(
-    ningalu-turn-based-combat-2_lib ${warning_guard}
-    PUBLIC
-    "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
-)
-
-target_compile_features(ningalu-turn-based-combat-2_lib PUBLIC cxx_std_20)
-
-find_package(fmt REQUIRED)
-target_link_libraries(ningalu-turn-based-combat-2_lib PRIVATE fmt::fmt)
+add_subdirectory(source/tbc)
 
 # ---- Declare executable ----
 
@@ -40,7 +26,13 @@ set_property(TARGET ningalu-turn-based-combat-2_exe PROPERTY OUTPUT_NAME ningalu
 
 target_compile_features(ningalu-turn-based-combat-2_exe PRIVATE cxx_std_20)
 
-target_link_libraries(ningalu-turn-based-combat-2_exe PRIVATE ningalu-turn-based-combat-2_lib)
+target_link_libraries(ningalu-turn-based-combat-2_exe PRIVATE ningalu-turn-based-combat_lib)
+
+target_include_directories(
+  ningalu-turn-based-combat-2_exe 
+  PUBLIC 
+  "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>"
+)
 
 # ---- Install rules ----
 

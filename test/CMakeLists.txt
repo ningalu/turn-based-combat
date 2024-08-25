@@ -14,7 +14,7 @@ include(Catch)
 add_executable(ningalu-turn-based-combat-2_test source/ningalu-turn-based-combat-2_test.cpp)
 target_link_libraries(
     ningalu-turn-based-combat-2_test PRIVATE
-    ningalu-turn-based-combat-2_lib
+    ningalu-turn-based-combat_lib
     Catch2::Catch2WithMain
 )
 target_compile_features(ningalu-turn-based-combat-2_test PRIVATE cxx_std_20)
