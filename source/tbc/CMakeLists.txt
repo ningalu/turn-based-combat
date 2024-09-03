@@ -1,7 +1,11 @@
 add_library(
     ningalu-turn-based-combat_lib OBJECT
     
-    lib.cpp
+    Target.cpp
+
+    Slot.cpp
+    Side.cpp
+    Layout.cpp
 )
 
 target_include_directories(
