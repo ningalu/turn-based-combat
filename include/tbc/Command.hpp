@@ -6,8 +6,10 @@
 namespace ngl::tbc {
 template <typename... T>
 struct Command {
+  using Payload = std::variant<T...>;
+
   Command(std::variant<T...> p) : payload{p} {}
-  std::variant<T...> payload;
+  Payload payload;
 };
 } // namespace ngl::tbc
 
