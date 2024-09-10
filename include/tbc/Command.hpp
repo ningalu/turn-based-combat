@@ -8,7 +8,8 @@ template <typename... T>
 struct Command {
   using Payload = std::variant<T...>;
 
-  Command(std::variant<T...> p) : payload{p} {}
+  Command(std::size_t player_, std::variant<T...> p) : player{player_}, payload{p} {}
+  std::size_t player;
   Payload payload;
 };
 } // namespace ngl::tbc
