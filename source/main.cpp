@@ -17,9 +17,14 @@
 #include "tbc/Target.h"
 #include "tbc/UserEffect.hpp"
 
+#include "tbc/BattleTypes.hpp"
+
 struct RockCommand {};
 struct PaperCommand {};
 struct ScissorsCommand {};
+
+// using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, ngl::tbc::Command<RockCommand, PaperCommand, ScissorsCommand>, ngl::tbc::Event
+
 using MyCommands       = ngl::tbc::Command<RockCommand, PaperCommand, ScissorsCommand>;
 using MyCommandPayload = MyCommands::Payload;
 
@@ -57,7 +62,6 @@ MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Targe
 }
 
 MyEventHandler eh;
-auto handler = std::get<0>(eh.callbacks);
 
 auto main() -> int {
   std::cout << "ningalu tbc\n";
