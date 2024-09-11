@@ -9,6 +9,8 @@
 #include "tbc/Command.hpp"
 #include "tbc/DeferredUserEffect.hpp"
 #include "tbc/Effect.hpp"
+#include "tbc/Event.hpp"
+#include "tbc/EventHandler.hpp"
 #include "tbc/Layout.h"
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Slot.h"
@@ -25,7 +27,10 @@ struct MyBattleState {
   int p1_state, p2_state;
   bool ended = false;
 };
-using MyBattle = ngl::tbc::Battle<int, MyBattleState>;
+
+using MyBattle       = ngl::tbc::Battle<int, MyBattleState>;
+using MyEvents       = ngl::tbc::Event<MyBattle, int, double>;
+using MyEventHandler = ngl::tbc::EventHandler<MyEvents>;
 
 using MyUserEffect    = ngl::tbc::UserEffect<MyBattle>;
 using MyDefUserEffect = ngl::tbc::DeferredUserEffect<MyBattle>;
@@ -51,6 +56,9 @@ MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Targe
   return MyAction{e};
 }
 
+MyEventHandler eh;
+auto handler = std::get<0>(eh.callbacks);
+
 auto main() -> int {
   std::cout << "ningalu tbc\n";
 
@@ -63,7 +71,7 @@ auto main() -> int {
   auto l = ngl::tbc::Layout{{{{0}}, {{1}}}};
 
   auto b  = MyBattle{0, l};
-  auto bs = ngl::tbc::BattleScheduler<MyCommands, MyBattle>{std::move(players)};
+  auto bs = ngl::tbc::BattleScheduler<MyCommands, MyBattle, MyEvents>{std::move(players)};
 
   bs.SetCommandValidator([](std::size_t, const std::vector<MyCommandPayload> &) { return true; });
   bs.SetActionTranslator([](const std::vector<MyCommands> &commands) {

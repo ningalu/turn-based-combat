@@ -10,9 +10,10 @@
 #include "tbc/Action.hpp"
 #include "tbc/Battle.hpp"
 #include "tbc/Command.hpp"
+#include "tbc/EventHandler.hpp"
 
 namespace ngl::tbc {
-template <typename TCommand, typename TBattle>
+template <typename TCommand, typename TBattle, typename TEvents>
 class BattleScheduler {
   using TCommandPayload = TCommand::Payload;
 
@@ -97,6 +98,8 @@ public:
 
 protected:
   std::vector<std::unique_ptr<PlayerComms<TCommandPayload>>> players_;
+
+  EventHandler<TEvents> event_handlers_;
 
   std::function<bool(std::size_t, std::vector<TCommandPayload>)> command_validator_;
   std::function<std::vector<TCommand>(const std::vector<TCommand> &)> command_orderer_;

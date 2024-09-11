@@ -4,11 +4,11 @@
 #include <variant>
 
 namespace ngl::tbc {
-template <typename... T>
+template <typename... Ts>
 struct Command {
-  using Payload = std::variant<T...>;
+  using Payload = std::variant<Ts...>;
 
-  Command(std::size_t player_, std::variant<T...> p) : player{player_}, payload{p} {}
+  Command(std::size_t player_, std::variant<Ts...> p) : player{player_}, payload{p} {}
   std::size_t player;
   Payload payload;
 };
