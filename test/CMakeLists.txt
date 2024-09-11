@@ -11,7 +11,12 @@ include(Catch)
 
 # ---- Tests ----
 
-add_executable(ningalu-turn-based-combat-2_test source/ningalu-turn-based-combat-2_test.cpp)
+add_executable(
+    ningalu-turn-based-combat-2_test 
+    source/ningalu-turn-based-combat-2_test.cpp
+    source/tbc/EventHandlerTest.cpp
+)
+
 target_link_libraries(
     ningalu-turn-based-combat-2_test PRIVATE
     ningalu-turn-based-combat_lib

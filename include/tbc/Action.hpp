@@ -10,6 +10,7 @@
 #include "tbc/Slot.h"
 #include "tbc/Target.h"
 #include "tbc/UserEffect.hpp"
+
 namespace ngl::tbc {
 template <typename TBattle>
 class Action {
