@@ -15,8 +15,7 @@ struct Slot {
 
   struct Index {
     Index(std::size_t side_, std::size_t slot_);
-    std::size_t side,
-      slot;
+    std::size_t side, slot;
   };
 };
 } // namespace ngl::tbc

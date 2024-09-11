@@ -3,20 +3,32 @@
 
 #include <functional>
 #include <optional>
+#include <variant>
 
+#include "tbc/DeferredEffect.hpp"
+#include "tbc/DeferredUserEffect.hpp"
 #include "tbc/Slot.h"
 #include "tbc/Target.h"
 #include "tbc/UserEffect.hpp"
-
 namespace ngl::tbc {
-template <typename TUserEffect>
+template <typename TBattle>
 class Action {
+  using Deferred = std::variant<DeferredEffect<TBattle>, DeferredUserEffect<TBattle>>;
+
 public:
-  Action(Slot::Index user_, const std::vector<Target> &targets_, std::function<std::optional<TUserEffect>(void)> next)
-      : user{user_}, targets{targets_}, NextEffect{next} {}
-  Slot::Index user;
-  std::vector<Target> targets;
-  std::function<std::optional<TUserEffect>(void)> NextEffect;
+  Action(const DeferredEffect<TBattle> &d) : Action(Deferred{d}) {}
+  Action(const DeferredUserEffect<TBattle> &d) : Action(Deferred{d}) {}
+  Action(const Deferred &d) : effect_{d} {}
+
+  [[nodiscard]] std::optional<typename Effect<TBattle>::Result> ApplyNext(TBattle &b) {
+    return std::visit([&](auto &&deferred) {
+      return deferred.Done() ? std::nullopt : deferred.ApplyNext(b);
+    },
+                      effect_);
+  }
+
+protected:
+  Deferred effect_;
 };
 } // namespace ngl::tbc
 
