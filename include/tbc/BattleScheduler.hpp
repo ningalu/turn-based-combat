@@ -50,6 +50,15 @@ public:
     return actions;
   }
 
+  template <typename TSpecificEvent>
+  [[nodiscard]] std::optional<Action<TBattle>> PostEvent(const TSpecificEvent &e) const {
+    std::optional<Action<TBattle>> out = std::nullopt;
+    if (event_handlers_.HasHandler<TSpecificEvent>()) {
+      out = event_handlers_.PostEvent<TSpecificEvent>(e);
+    }
+    return out;
+  }
+
   void SetCommandValidator(const std::function<bool(std::size_t, std::vector<TCommandPayload>)> &validator) {
     command_validator_ = validator;
   }
@@ -90,9 +99,20 @@ public:
     }
   }
 
+  // TODO: to buffer static and dynamic actions
   void RunTurn(std::vector<Action<TBattle>> &actions, TBattle &b) {
+    auto pre_turn = PostEvent<TEvents::TurnsStart>({});
+    if (pre_turn.has_value()) {
+      ExecuteAction(pre_turn.value(), b);
+    }
+
     for (auto &action : actions) {
       ExecuteAction(action, b);
+    }
+
+    auto post_turn = PostEvent<TEvents::TurnsEnd>({});
+    if (post_turn.has_value()) {
+      ExecuteAction(post_turn.value(), b);
     }
   }
 
