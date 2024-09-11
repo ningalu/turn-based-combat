@@ -7,6 +7,7 @@
 #include "tbc/Battle.hpp"
 #include "tbc/BattleScheduler.hpp"
 #include "tbc/Command.hpp"
+#include "tbc/DeferredUserEffect.hpp"
 #include "tbc/Effect.hpp"
 #include "tbc/Layout.h"
 #include "tbc/PlayerComms.hpp"
@@ -26,70 +27,35 @@ struct MyBattleState {
 };
 using MyBattle = ngl::tbc::Battle<int, MyBattleState>;
 
-using MyUserEffect = ngl::tbc::UserEffect<MyBattle>;
+using MyUserEffect    = ngl::tbc::UserEffect<MyBattle>;
+using MyDefUserEffect = ngl::tbc::DeferredUserEffect<MyBattle>;
 
-MyUserEffect rock_effect{
-  [](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
+MyUserEffect GetEffect(int state) {
+  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
     switch (u.side) {
-      case 0: b.p1_state = 0; break;
-      case 1: b.p2_state = 0; break;
+      case 0: b.p1_state = state; break;
+      case 1: b.p2_state = state; break;
       default: throw std::logic_error{"invalid side"};
     }
-    return ngl::tbc::EffectResult::Success{}; }
-};
+    std::cout << "setting " << u.side << " to " << state << "\n";
+    return ngl::tbc::EffectResult::Success{}; }};
+}
 
-MyUserEffect paper_effect{
-  [](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
-    switch (u.side) {
-      case 0: b.p1_state = 1; break;
-      case 1: b.p2_state = 1; break;
-      default: throw std::logic_error{"invalid side"};
-    }
-    return ngl::tbc::EffectResult::Success{}; }
-};
-
-MyUserEffect scissor_effect{
-  [](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
-    switch (u.side) {
-      case 0: b.p1_state = 2; break;
-      case 1: b.p2_state = 2; break;
-      default: throw std::logic_error{"invalid side"};
-    }
-    return ngl::tbc::EffectResult::Success{}; }
-};
-
-using MyAction = ngl::tbc::Action<MyUserEffect>;
+using MyAction = ngl::tbc::Action<MyBattle>;
 MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Target> &targets, int state) {
-  std::vector<MyUserEffect> out;
-  switch (state) {
-  case 0:
-    out.push_back(rock_effect);
-    break;
-  case 1:
-    out.push_back(paper_effect);
-    break;
-  case 2:
-    out.push_back(scissor_effect);
-    break;
-  default:
+  if (state > 2) {
     throw std::logic_error{"invalid state"};
   }
-  return MyAction{user, targets, [=]() mutable {
-                    std::cout << out.size() << "\n";
-                    std::optional<MyUserEffect> e;
-                    if (out.size() > 0) {
-                      e = out.at(0);
-                      out.erase(out.begin());
-                    }
-                    return e;
-                  }};
+
+  MyDefUserEffect e{user, {GetEffect(state)}, targets};
+  return MyAction{e};
 }
 
 auto main() -> int {
   std::cout << "ningalu tbc\n";
 
   auto p1 = std::make_unique<ngl::tbc::PlayerComms<MyCommandPayload>>("Player 1", []() { return std::vector<MyCommandPayload>({MyCommandPayload{PaperCommand{}}}); });
-  auto p2 = std::make_unique<ngl::tbc::PlayerComms<MyCommandPayload>>("Player 2", []() { return std::vector<MyCommandPayload>({MyCommandPayload{RockCommand{}}}); });
+  auto p2 = std::make_unique<ngl::tbc::PlayerComms<MyCommandPayload>>("Player 2", []() { return std::vector<MyCommandPayload>({MyCommandPayload{ScissorsCommand{}}}); });
   std::vector<std::unique_ptr<ngl::tbc::PlayerComms<MyCommandPayload>>> players;
   players.emplace_back(std::move(p1));
   players.emplace_back(std::move(p2));
@@ -121,8 +87,10 @@ auto main() -> int {
     }
     return out;
   });
+  const auto commands = bs.RequestCommands({0, 1});
+  auto actions        = bs.GetActions(commands);
 
-  for (const auto &r : bs.RequestCommands({0, 1})) {
+  for (const auto &r : commands) {
     static_assert(std::is_same_v<std::decay_t<decltype(r.payload)>, MyCommandPayload>);
     std::visit([](auto &&p) {
       using T = std::decay_t<decltype(p)>;
@@ -139,21 +107,8 @@ auto main() -> int {
                r.payload);
     std::cout << r.player << "\n";
   }
-  std::vector<std::optional<ngl::tbc::UserEffect<MyBattle>>> action_queue;
-  action_queue.push_back(ngl::tbc::UserEffect<MyBattle>{[](ngl::tbc::Slot::Index, MyBattle &, const std::vector<ngl::tbc::Target> &) { return ngl::tbc::EffectResult::Success{}; }});
-  std::size_t i = 0;
-  ngl::tbc::Action<ngl::tbc::UserEffect<ngl::tbc::Battle<int, MyBattleState>>> a{ngl::tbc::Slot::Index{0, 0}, {}, [&i, &action_queue]() {
-                                                                                   std::optional<ngl::tbc::UserEffect<MyBattle>> out = std::nullopt;
-                                                                                   if (i < action_queue.size()) {
-                                                                                     out = action_queue.at(i);
-                                                                                   }
-                                                                                   i++;
-                                                                                   return out;
-                                                                                 }};
 
-  bs.ExecuteAction(a, b);
-
-  bs.ExecuteAction(GetAction({0, 0}, {}, 1), b);
+  bs.RunTurn(actions, b);
 
   return 0;
 }
