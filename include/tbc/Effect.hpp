@@ -40,6 +40,7 @@ private:
   std::function<Result(TBattle &, const std::vector<Target> &)> xfer_;
   std::function<Result(const TBattle &, const Result &)> outcome_check_;
 };
+
 } // namespace ngl::tbc
 
 #endif

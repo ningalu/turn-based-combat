@@ -71,22 +71,27 @@ public:
     return command_orderer_ ? command_orderer_(commands) : commands;
   }
 
-  void SetActionTranslator(const std::function<std::vector<Action<UserEffect<TBattle>>>(const std::vector<TCommand> &)> &translator) {
+  void SetActionTranslator(const std::function<std::vector<Action<TBattle>>(const std::vector<TCommand> &)> &translator) {
     action_translator_ = translator;
   }
 
-  [[nodiscard]] std::vector<Action<UserEffect<TBattle>>> GetActions(const std::vector<TCommand> &commands) const {
+  [[nodiscard]] std::vector<Action<TBattle>> GetActions(const std::vector<TCommand> &commands) const {
     assert(action_translator_);
     return action_translator_(commands);
   }
 
-  void ExecuteAction(const Action<UserEffect<TBattle>> &action, TBattle &b) {
-    auto next = action.NextEffect();
+  void ExecuteAction(Action<TBattle> &action, TBattle &b) {
+    auto next = action.ApplyNext(b);
     while (next != std::nullopt) {
-      auto effect       = next.value();
-      const auto result = effect.Apply(action.user, b, action.targets);
+      auto res = next.value();
 
-      next = action.NextEffect();
+      next = action.ApplyNext(b);
+    }
+  }
+
+  void RunTurn(std::vector<Action<TBattle>> &actions, TBattle &b) {
+    for (auto &action : actions) {
+      ExecuteAction(action, b);
     }
   }
 
@@ -95,7 +100,7 @@ protected:
 
   std::function<bool(std::size_t, std::vector<TCommandPayload>)> command_validator_;
   std::function<std::vector<TCommand>(const std::vector<TCommand> &)> command_orderer_;
-  std::function<std::vector<Action<UserEffect<TBattle>>>(const std::vector<TCommand> &)> action_translator_;
+  std::function<std::vector<Action<TBattle>>(const std::vector<TCommand> &)> action_translator_;
 };
 } // namespace ngl::tbc
 
