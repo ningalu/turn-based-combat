@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -46,6 +47,20 @@ const MyEffect debug_effect{
   [](MyBattle &b, const std::vector<ngl::tbc::Target> &) { std::cout << "debug effect\n"; b.EndBattle({0}); return ngl::tbc::EffectResult::Success{}; }
 };
 
+const MyEffect resolve_rps_effect{
+  [](MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
+    int win_table[3][3] = {{0, -1, 1}, {1, 0, -1}, {-1, 1, 0}};
+    
+    const auto outcome = win_table[b.p1_state][b.p2_state];
+    if (outcome == 1) {
+      b.EndBattle({0});
+    } else if (outcome == -1) {
+      b.EndBattle({1});
+    } 
+
+    return ngl::tbc::EffectResult::Success{}; }
+};
+
 MyUserEffect GetEffect(int state) {
   return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
     switch (u.side) {
@@ -72,7 +87,21 @@ MyEventHandler eh;
 auto main() -> int {
   std::cout << "ningalu tbc\n";
 
-  auto p1 = std::make_unique<ngl::tbc::PlayerComms<MyCommandPayload>>("Player 1", []() { return std::vector<MyCommandPayload>({MyCommandPayload{PaperCommand{}}}); });
+  auto p1 = std::make_unique<ngl::tbc::PlayerComms<MyCommandPayload>>("Player 1", [&]() {
+    std::set<std::string> valid{"R", "P", "S"};
+    std::cout << "Play R | P | S\n";
+    std::string in;
+    while (!valid.contains(in)) {
+      std::cin >> in;
+    }
+    if (in == "R") {
+      return std::vector<MyCommandPayload>({MyCommandPayload{RockCommand{}}});
+    } else if (in == "P") {
+      return std::vector<MyCommandPayload>({MyCommandPayload{PaperCommand{}}});
+    } else {
+      return std::vector<MyCommandPayload>({MyCommandPayload{ScissorsCommand{}}});
+    }
+  });
   auto p2 = std::make_unique<ngl::tbc::PlayerComms<MyCommandPayload>>("Player 2", []() { return std::vector<MyCommandPayload>({MyCommandPayload{ScissorsCommand{}}}); });
   std::vector<std::unique_ptr<ngl::tbc::PlayerComms<MyCommandPayload>>> players;
   players.emplace_back(std::move(p1));
@@ -127,9 +156,10 @@ auto main() -> int {
   // }
 
   // ngl::tbc::Turn<MyBattle> turn{actions};
-  bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>([=](ngl::tbc::DefaultEvents::TurnsEnd) { return MyAction{MyDefEffect{{debug_effect}, {}}}; });
+  bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>([=](ngl::tbc::DefaultEvents::TurnsEnd) { return MyAction{MyDefEffect{{resolve_rps_effect}, {}}}; });
   // bs.RunTurn(turn, b);
   auto winners = bs.RunBattle(b);
+  std::cout << "Winner: Player " << winners.at(0) + 1 << "\n";
 
   return 0;
 }

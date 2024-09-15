@@ -128,7 +128,7 @@ public:
   [[nodiscard]] std::vector<std::size_t> RunBattle(TBattle &b) {
     const auto player_indices = [&, this]() {
       std::vector<std::size_t> out(players_.size());
-      std::iota(out.begin(), out.end(), 0);
+      std::iota(out.begin(), out.end(), std::size_t{0});
       return out;
     }();
 
