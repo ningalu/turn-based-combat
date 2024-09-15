@@ -23,8 +23,6 @@ struct RockCommand {};
 struct PaperCommand {};
 struct ScissorsCommand {};
 
-// using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, ngl::tbc::Command<RockCommand, PaperCommand, ScissorsCommand>, ngl::tbc::Event
-
 using MyCommands       = ngl::tbc::Command<RockCommand, PaperCommand, ScissorsCommand>;
 using MyCommandPayload = MyCommands::Payload;
 
