@@ -21,7 +21,7 @@ public:
   }
 
   [[nodiscard]] bool HasEnded() const {
-    return winner_indices_ == std::nullopt;
+    return winner_indices_ != std::nullopt;
   }
 
   [[nodiscard]] std::vector<std::size_t> GetWinners() const {
