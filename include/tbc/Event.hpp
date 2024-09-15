@@ -10,6 +10,7 @@
 
 namespace ngl::tbc {
 
+// TODO: decouple from TBattle; find a way to define just the event payload while also getting the Callback tuple into EventHandler
 template <typename TBattle, typename... Ts>
 struct Event {
 public:
