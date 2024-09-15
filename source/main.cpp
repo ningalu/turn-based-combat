@@ -7,6 +7,7 @@
 #include "tbc/Battle.hpp"
 #include "tbc/BattleScheduler.hpp"
 #include "tbc/Command.hpp"
+#include "tbc/DeferredEffect.hpp"
 #include "tbc/DeferredUserEffect.hpp"
 #include "tbc/Effect.hpp"
 #include "tbc/Event.hpp"
@@ -15,6 +16,7 @@
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Slot.h"
 #include "tbc/Target.h"
+#include "tbc/Turn.hpp"
 #include "tbc/UserEffect.hpp"
 
 #include "tbc/BattleTypes.hpp"
@@ -35,8 +37,14 @@ using MyBattle       = ngl::tbc::Battle<int, MyBattleState>;
 using MyEvents       = ngl::tbc::Event<MyBattle, int, double>;
 using MyEventHandler = ngl::tbc::EventHandler<MyEvents>;
 
+using MyEffect        = ngl::tbc::Effect<MyBattle>;
+using MyDefEffect     = ngl::tbc::DeferredEffect<MyBattle>;
 using MyUserEffect    = ngl::tbc::UserEffect<MyBattle>;
 using MyDefUserEffect = ngl::tbc::DeferredUserEffect<MyBattle>;
+
+const MyEffect debug_effect{
+  [](MyBattle &b, const std::vector<ngl::tbc::Target> &) { std::cout << "debug effect\n"; b.EndBattle({0}); return ngl::tbc::EffectResult::Success{}; }
+};
 
 MyUserEffect GetEffect(int state) {
   return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
@@ -97,28 +105,31 @@ auto main() -> int {
     }
     return out;
   });
-  const auto commands = bs.RequestCommands({0, 1});
-  auto actions        = bs.GetActions(commands);
+  // const auto commands = bs.RequestCommands({0, 1});
+  // auto actions        = bs.GetActions(commands);
 
-  for (const auto &r : commands) {
-    static_assert(std::is_same_v<std::decay_t<decltype(r.payload)>, MyCommandPayload>);
-    std::visit([](auto &&p) {
-      using T = std::decay_t<decltype(p)>;
-      if constexpr (std::is_same_v<T, RockCommand>) {
-        std::cout << "Rock\n";
-      } else if constexpr (std::is_same_v<T, PaperCommand>) {
-        std::cout << "Paper\n";
-      } else if constexpr (std::is_same_v<T, ScissorsCommand>) {
-        std::cout << "Scissors\n";
-      } else {
-        throw std::logic_error{"invalid comand"};
-      }
-    },
-               r.payload);
-    std::cout << r.player << "\n";
-  }
+  // for (const auto &r : commands) {
+  //   static_assert(std::is_same_v<std::decay_t<decltype(r.payload)>, MyCommandPayload>);
+  //   std::visit([](auto &&p) {
+  //     using T = std::decay_t<decltype(p)>;
+  //     if constexpr (std::is_same_v<T, RockCommand>) {
+  //       std::cout << "Rock\n";
+  //     } else if constexpr (std::is_same_v<T, PaperCommand>) {
+  //       std::cout << "Paper\n";
+  //     } else if constexpr (std::is_same_v<T, ScissorsCommand>) {
+  //       std::cout << "Scissors\n";
+  //     } else {
+  //       throw std::logic_error{"invalid comand"};
+  //     }
+  //   },
+  //              r.payload);
+  //   std::cout << r.player << "\n";
+  // }
 
-  bs.RunTurn(actions, b);
+  // ngl::tbc::Turn<MyBattle> turn{actions};
+  bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>([=](ngl::tbc::DefaultEvents::TurnsEnd) { return MyAction{MyDefEffect{{debug_effect}, {}}}; });
+  // bs.RunTurn(turn, b);
+  auto winners = bs.RunBattle(b);
 
   return 0;
 }

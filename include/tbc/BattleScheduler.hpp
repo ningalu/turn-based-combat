@@ -4,13 +4,17 @@
 #include <cassert>
 #include <functional>
 #include <future>
+#include <iostream>
+#include <numeric>
 #include <optional>
 #include <vector>
 
 #include "tbc/Action.hpp"
 #include "tbc/Battle.hpp"
 #include "tbc/Command.hpp"
+#include "tbc/Effect.hpp"
 #include "tbc/EventHandler.hpp"
+#include "tbc/Turn.hpp"
 
 namespace ngl::tbc {
 template <typename TCommand, typename TBattle, typename TEvents>
@@ -48,6 +52,11 @@ public:
       actions.insert(actions.end(), val.begin(), val.end());
     }
     return actions;
+  }
+
+  template <typename TSpecificEvent>
+  void SetHandler(std::function<Action<TBattle>(TSpecificEvent)> handler) {
+    event_handlers_.RegisterHandler<TSpecificEvent>(handler);
   }
 
   template <typename TSpecificEvent>
@@ -90,33 +99,112 @@ public:
     return action_translator_(commands);
   }
 
-  void ExecuteAction(Action<TBattle> &action, TBattle &b) {
-    auto next = action.ApplyNext(b);
-    while (next != std::nullopt) {
-      auto res = next.value();
+  void RunTurn(Turn<TBattle> turn, TBattle &b) {
+    auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({});
+    if (pre_turn.has_value()) {
+      turn.AddAction(pre_turn.value());
+    }
 
-      next = action.ApplyNext(b);
+    // Run from the start every time a restart is required
+    while (RunTurnUntilRestart(turn, b)) {
+      if (b.HasEnded()) {
+        return;
+      }
+    }
+
+    auto post_turn = PostEvent<DefaultEvents::TurnsEnd>({});
+    if (post_turn.has_value()) {
+      turn.AddAction(post_turn.value());
+    }
+
+    // Run all actions added by post turn event
+    while (RunTurnUntilRestart(turn, b)) {
+      if (b.HasEnded()) {
+        return;
+      }
     }
   }
 
-  // TODO: to buffer static and dynamic actions
-  void RunTurn(std::vector<Action<TBattle>> &actions, TBattle &b) {
-    auto pre_turn = PostEvent<TEvents::TurnsStart>({});
-    if (pre_turn.has_value()) {
-      ExecuteAction(pre_turn.value(), b);
+  [[nodiscard]] std::vector<std::size_t> RunBattle(TBattle &b) {
+    const auto player_indices = [&, this]() {
+      std::vector<std::size_t> out(players_.size());
+      std::iota(out.begin(), out.end(), 0);
+      return out;
+    }();
+
+    for (std::size_t i = 0; !b.HasEnded(); i++) {
+
+      const auto commands         = RequestCommands(player_indices);
+      const auto ordered_commands = OrderCommands(commands);
+      const auto actions          = GetActions(ordered_commands);
+      Turn<TBattle> turn{actions};
+      if (i == 0) {
+        auto event_action = PostEvent(DefaultEvents::BattleStart{});
+        if (event_action.has_value()) {
+          turn.AddAction(event_action.value());
+        }
+      }
+      RunTurn(turn, b);
     }
 
-    for (auto &action : actions) {
-      ExecuteAction(action, b);
-    }
-
-    auto post_turn = PostEvent<TEvents::TurnsEnd>({});
-    if (post_turn.has_value()) {
-      ExecuteAction(post_turn.value(), b);
-    }
+    return b.GetWinners();
   }
 
 protected:
+  [[nodiscard]] bool RunTurnUntilRestart(Turn<TBattle> &turn, TBattle &b) {
+    for (auto *actions_ptr : {&turn.dynamic_actions, &turn.static_actions}) {
+      auto &actions            = *actions_ptr;
+      bool trigger_turn_events = (actions_ptr == &turn.static_actions);
+
+      while (actions.size() > 0) {
+        auto &action = actions.at(0);
+
+        if (trigger_turn_events && (!action.Started())) {
+          std::cout << "Static action start event\n";
+        }
+
+        while (!action.Done()) {
+          auto res = action.ApplyNext(b);
+
+          if (res == std::nullopt) {
+            break;
+          }
+
+          auto restart = std::visit([&, this](auto &&r) {
+            using T = std::decay_t<decltype(r)>;
+            if constexpr (std::is_same_v<T, EffectResult::EndBattle>) {
+              // The battle ending doesn't cause the action order to restart, but will stop any additional effects from being applied
+              // end the battle
+              b.EndBattle(r.winners);
+              return false;
+            } else if constexpr (std::is_same_v<T, EffectResult::RequestCommands>) {
+              // Requesting additional dynamic commands requires working from the start of the action order
+              auto commands = RequestCommands(r.players);
+              auto actions  = GetActions(commands);
+              turn.AddActions(actions);
+              return true;
+            } else if constexpr (std::is_same_v<T, EffectResult::Success>) {
+              return false;
+            }
+          },
+                                    res.value());
+
+          if (restart) {
+            return restart;
+          }
+        }
+
+        if (trigger_turn_events) {
+          std::cout << "Static action end events\n";
+        }
+
+        actions.erase(actions.begin());
+      }
+    }
+
+    return false;
+  }
+
   std::vector<std::unique_ptr<PlayerComms<TCommandPayload>>> players_;
 
   EventHandler<TEvents> event_handlers_;
