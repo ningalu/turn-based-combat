@@ -21,6 +21,8 @@ template <typename TCommand, typename TBattle, typename TEvents>
 class BattleScheduler {
   using TCommandPayload = TCommand::Payload;
 
+  using CommandValidator = std::function<std::optional<std::vector<TCommandPayload>>(std::size_t, std::vector<TCommandPayload>, const std::vector<TCommand> &)>;
+
 public:
   BattleScheduler(std::vector<std::unique_ptr<PlayerComms<TCommandPayload>>> players) : players_{std::move(players)} {}
 
@@ -32,14 +34,14 @@ public:
 
       // Async poll each player for static commands, rejecting and repolling if any are invalid
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
-        std::vector<TCommandPayload> payloads;
+        std::optional<std::vector<TCommandPayload>> payloads;
         do {
-          payloads = players_.at(player)->GetStaticCommand().get();
-
-        } while (!ValidateCommands(player, payloads));
+          const auto incoming_payloads = players_.at(player)->GetStaticCommand().get();
+          payloads                     = ValidateCommands(player, incoming_payloads, (queued_commands_.size() > 0 ? queued_commands_.at(0) : std::vector<TCommand>{}));
+        } while (!payloads.has_value());
 
         std::vector<TCommand> commands;
-        for (const auto &payload : payloads) {
+        for (const auto &payload : payloads.value()) {
           commands.push_back(TCommand{player, payload});
         }
         return commands;
@@ -68,18 +70,20 @@ public:
     return out;
   }
 
-  void SetCommandValidator(const std::function<bool(std::size_t, std::vector<TCommandPayload>)> &validator) {
+  void SetCommandValidator(const CommandValidator &validator) {
     command_validator_ = validator;
   }
 
   // TODO: is there actually any meaningful domain-agnostic validation that can be done here?
-  [[nodiscard]] bool ValidateCommands(std::size_t authority, const std::vector<TCommandPayload> &commands) const {
+  [[nodiscard]] std::optional<std::vector<TCommandPayload>> ValidateCommands(std::size_t authority, const std::vector<TCommandPayload> &commands, const std::vector<TCommand> &buffered) const {
     if (command_validator_) {
-      if (!command_validator_(authority, commands)) {
-        return false;
-      }
+      return command_validator_(authority, commands, buffered);
     }
-    return true;
+    auto out = commands;
+    for (const auto &b : buffered) {
+      out.push_back(b.payload);
+    }
+    return commands;
   }
 
   void SetCommandOrderer(const std::function<std::vector<TCommand>(const std::vector<TCommand> &)> &orderer) {
@@ -145,6 +149,10 @@ public:
         }
       }
       RunTurn(turn, b);
+
+      if (queued_commands_.size() > 0) {
+        queued_commands_.erase(queued_commands_.begin());
+      }
     }
 
     return b.GetWinners();
@@ -205,13 +213,23 @@ protected:
     return false;
   }
 
+  void BufferCommand(const TCommand &c, std::size_t turns_ahead) {
+    while (queued_commands_.size() < (turns_ahead + 1)) {
+      queued_commands_.push_back({});
+    }
+
+    queued_commands_.at(turns_ahead).push_back(c);
+  }
+
   std::vector<std::unique_ptr<PlayerComms<TCommandPayload>>> players_;
 
   EventHandler<TBattle, TEvents> event_handlers_;
 
-  std::function<bool(std::size_t, std::vector<TCommandPayload>)> command_validator_;
+  CommandValidator command_validator_;
   std::function<std::vector<TCommand>(const std::vector<TCommand> &)> command_orderer_;
   std::function<std::vector<Action<TBattle>>(const std::vector<TCommand> &)> action_translator_;
+
+  std::vector<std::vector<TCommand>> queued_commands_;
 };
 } // namespace ngl::tbc
 

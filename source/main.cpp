@@ -124,7 +124,7 @@ auto main() -> int {
   auto b  = MyBattle{0, l};
   auto bs = ngl::tbc::BattleScheduler<MyCommands, MyBattle, MyEvents>{std::move(players)};
 
-  bs.SetCommandValidator([](std::size_t, const std::vector<MyCommandPayload> &) { return true; });
+  bs.SetCommandValidator([](std::size_t, const std::vector<MyCommandPayload> &payload, const std::vector<MyCommands> &) { return payload; });
   bs.SetActionTranslator([](const std::vector<MyCommands> &commands) {
     auto out = std::vector<MyAction>{};
     for (const auto &c : commands) {
