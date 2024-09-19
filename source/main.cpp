@@ -35,8 +35,8 @@ struct MyBattleState {
 };
 
 using MyBattle       = ngl::tbc::Battle<int, MyBattleState>;
-using MyEvents       = ngl::tbc::Event<MyBattle, int, double>;
-using MyEventHandler = ngl::tbc::EventHandler<MyEvents>;
+using MyEvents       = ngl::tbc::Event<int, double>;
+using MyEventHandler = ngl::tbc::EventHandler<MyBattle, MyEvents>;
 
 using MyEffect        = ngl::tbc::Effect<MyBattle>;
 using MyDefEffect     = ngl::tbc::DeferredEffect<MyBattle>;
@@ -48,21 +48,21 @@ const MyEffect debug_effect{
 };
 
 const MyEffect resolve_rps_effect{
-  [](MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
+  [](MyBattle &b, const std::vector<ngl::tbc::Target> &) {
     int win_table[3][3] = {{0, -1, 1}, {1, 0, -1}, {-1, 1, 0}};
-    
+
     const auto outcome = win_table[b.p1_state][b.p2_state];
     if (outcome == 1) {
       b.EndBattle({0});
     } else if (outcome == -1) {
       b.EndBattle({1});
-    } 
+    }
 
     return ngl::tbc::EffectResult::Success{}; }
 };
 
 MyUserEffect GetEffect(int state) {
-  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) { 
+  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) {
     switch (u.side) {
       case 0: b.p1_state = state; break;
       case 1: b.p2_state = state; break;
@@ -85,6 +85,7 @@ MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Targe
 MyEventHandler eh;
 
 auto main() -> int {
+  eh.RegisterHandler<int>([&](int a) {std::cout << "int: " << a << "\n"; return GetAction({0, 0}, {}, 0); });
   std::cout << "ningalu tbc\n";
 
   auto p1 = std::make_unique<ngl::tbc::PlayerComms<MyCommandPayload>>("Player 1", [&]() {
