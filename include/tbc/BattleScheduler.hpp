@@ -70,6 +70,14 @@ public:
     return out;
   }
 
+  [[nodiscard]] std::optional<Action<TBattle, TEvents, TCommand>> PostEvent(const TEvents &e) const {
+    return std::visit([&, this](auto &&event) {
+      using T = std::decay_t<decltype(event)>;
+      return PostEvent<T>(event);
+    },
+                      e.payload);
+  }
+
   void SetCommandValidator(const CommandValidator &validator) {
     command_validator_ = validator;
   }
@@ -180,31 +188,33 @@ protected:
 
           [[maybe_unused]] auto [status, winners, command_requests, events, buffered_commands] = res.value();
 
-          // [[maybe_unused]] auto status            = std::get<EffectResult::Status>(res);
-          // [[maybe_unused]] auto winners           = std::get<1>(res);
-          // [[maybe_unused]] auto command_requests  = std::get<2>(res);
-          // [[maybe_unused]] auto events            = std::get<3>(res);
-          // [[maybe_unused]] auto buffered_commands = std::get<4>(res);
-
           bool restart = false;
-          // auto restart = std::visit([&, this](auto &&r) {
-          //   using T = std::decay_t<decltype(r)>;
-          //   if constexpr (std::is_same_v<T, EffectResult::EndBattle>) {
-          //     // The battle ending doesn't cause the action order to restart, but will stop any additional effects from being applied
-          //     // end the battle
-          //     b.EndBattle(r.winners);
-          //     return false;
-          //   } else if constexpr (std::is_same_v<T, EffectResult::RequestCommands>) {
-          //     // Requesting additional dynamic commands requires working from the start of the action order
-          //     auto commands = RequestCommands(r.players);
-          //     auto actions  = GetActions(commands);
-          //     turn.AddActions(actions);
-          //     return true;
-          //   } else if constexpr (std::is_same_v<T, EffectResult::Success>) {
-          //     return false;
-          //   }
-          // },
-          //                           res.value());
+
+          if (winners.winners.size() > 0) {
+            b.EndBattle(winners.winners);
+            return false;
+          }
+
+          // TODO: This order causes event actions to run before requested commands. give more control over this?
+          // allow effects to trigger these things themselves? that would require a lot of changes
+          if (command_requests.players.size() > 0) {
+            auto commands        = RequestCommands(command_requests.players);
+            auto dynamic_actions = GetActions(commands);
+            turn.AddActions(dynamic_actions);
+            restart = true;
+          }
+
+          for (auto it = events.events.rbegin(); it != events.events.rend(); it++) {
+            TEvents queued_event    = *it;
+            const auto event_action = PostEvent(queued_event);
+            if (event_action.has_value()) {
+              turn.AddAction(event_action.value());
+            }
+          };
+
+          for (const auto &[command, time] : buffered_commands.commands) {
+            BufferCommand(command, time);
+          }
 
           if (restart) {
             return restart;

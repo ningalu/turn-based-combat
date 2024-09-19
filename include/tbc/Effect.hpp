@@ -32,7 +32,7 @@ struct Events {
 
 template <typename TCommand>
 struct BufferCommands {
-  std::vector<TCommand> commands;
+  std::vector<std::pair<TCommand, std::size_t>> commands;
 };
 
 template <typename TEvents, typename TCommands>
