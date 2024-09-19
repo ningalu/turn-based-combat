@@ -24,15 +24,15 @@ struct BattleTypes {
   using Battle          = Battle<TUnit, TBattleState>;
   using BattleScheduler = BattleScheduler<TCommands, Battle, TEvents>;
 
-  using EventHandler = EventHandler<Battle, TEvents>;
+  using EventHandler = EventHandler<Battle, TCommands, TEvents>;
 
-  using Effect             = Effect<Battle>;
-  using UserEffect         = UserEffect<Battle>;
-  using DeferredEffect     = DeferredEffect<Battle>;
-  using DeferredUserEffect = DeferredUserEffect<Battle>;
+  using Effect             = Effect<Battle, TEvents, TCommands>;
+  using UserEffect         = UserEffect<Battle, TEvents, TCommands>;
+  using DeferredEffect     = DeferredEffect<Battle, TEvents, TCommands>;
+  using DeferredUserEffect = DeferredUserEffect<Battle, TEvents, TCommands>;
   using EffectResult       = Effect::Result;
 
-  using Action = Action<Battle>;
+  using Action = Action<Battle, TEvents, TCommands>;
 };
 }; // namespace ngl::tbc
 

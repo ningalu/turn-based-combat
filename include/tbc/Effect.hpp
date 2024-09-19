@@ -11,20 +11,38 @@ namespace ngl::tbc {
 
 namespace EffectResult {
 
-struct Success {};
-struct EndBattle {
+enum class Status {
+  SUCCESS,
+  SKIPPED,
+  FAILED,
+};
+
+struct Winners {
   std::vector<std::size_t> winners;
 };
+
 struct RequestCommands {
   std::vector<std::size_t> players;
 };
-using Result = std::variant<Success, EndBattle, RequestCommands>;
+
+template <typename TEvents>
+struct Events {
+  std::vector<TEvents> events;
+};
+
+template <typename TCommand>
+struct BufferCommands {
+  std::vector<TCommand> commands;
+};
+
+template <typename TEvents, typename TCommands>
+using Result = std::tuple<Status, Winners, RequestCommands, Events<TEvents>, BufferCommands<TCommands>>;
 } // namespace EffectResult
 
-template <typename TBattle>
+template <typename TBattle, typename TEvents, typename TCommands>
 class Effect {
 public:
-  using Result = EffectResult::Result;
+  using Result = EffectResult::Result<TEvents, TCommands>;
 
   Effect(std::function<Result(TBattle &, const std::vector<Target> &)> f) : xfer_{f} {}
 

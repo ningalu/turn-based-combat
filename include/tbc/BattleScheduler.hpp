@@ -57,13 +57,13 @@ public:
   }
 
   template <typename TSpecificEvent>
-  void SetHandler(std::function<Action<TBattle>(TSpecificEvent)> handler) {
+  void SetHandler(std::function<Action<TBattle, TEvents, TCommand>(TSpecificEvent)> handler) {
     event_handlers_.RegisterHandler<TSpecificEvent>(handler);
   }
 
   template <typename TSpecificEvent>
-  [[nodiscard]] std::optional<Action<TBattle>> PostEvent(const TSpecificEvent &e) const {
-    std::optional<Action<TBattle>> out = std::nullopt;
+  [[nodiscard]] std::optional<Action<TBattle, TEvents, TCommand>> PostEvent(const TSpecificEvent &e) const {
+    std::optional<Action<TBattle, TEvents, TCommand>> out = std::nullopt;
     if (event_handlers_.HasHandler<TSpecificEvent>()) {
       out = event_handlers_.PostEvent<TSpecificEvent>(e);
     }
@@ -94,16 +94,16 @@ public:
     return command_orderer_ ? command_orderer_(commands) : commands;
   }
 
-  void SetActionTranslator(const std::function<std::vector<Action<TBattle>>(const std::vector<TCommand> &)> &translator) {
+  void SetActionTranslator(const std::function<std::vector<Action<TBattle, TEvents, TCommand>>(const std::vector<TCommand> &)> &translator) {
     action_translator_ = translator;
   }
 
-  [[nodiscard]] std::vector<Action<TBattle>> GetActions(const std::vector<TCommand> &commands) const {
+  [[nodiscard]] std::vector<Action<TBattle, TEvents, TCommand>> GetActions(const std::vector<TCommand> &commands) const {
     assert(action_translator_);
     return action_translator_(commands);
   }
 
-  void RunTurn(Turn<TBattle> turn, TBattle &b) {
+  void RunTurn(Turn<TBattle, TEvents, TCommand> turn, TBattle &b) {
     auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({});
     if (pre_turn.has_value()) {
       turn.AddAction(pre_turn.value());
@@ -141,7 +141,7 @@ public:
       const auto commands         = RequestCommands(player_indices);
       const auto ordered_commands = OrderCommands(commands);
       const auto actions          = GetActions(ordered_commands);
-      Turn<TBattle> turn{actions};
+      Turn<TBattle, TEvents, TCommand> turn{actions};
       if (i == 0) {
         auto event_action = PostEvent(DefaultEvents::BattleStart{});
         if (event_action.has_value()) {
@@ -159,7 +159,7 @@ public:
   }
 
 protected:
-  [[nodiscard]] bool RunTurnUntilRestart(Turn<TBattle> &turn, TBattle &b) {
+  [[nodiscard]] bool RunTurnUntilRestart(Turn<TBattle, TEvents, TCommand> &turn, TBattle &b) {
     for (auto *actions_ptr : {&turn.dynamic_actions, &turn.static_actions}) {
       auto &actions            = *actions_ptr;
       bool trigger_turn_events = (actions_ptr == &turn.static_actions);
@@ -178,24 +178,33 @@ protected:
             break;
           }
 
-          auto restart = std::visit([&, this](auto &&r) {
-            using T = std::decay_t<decltype(r)>;
-            if constexpr (std::is_same_v<T, EffectResult::EndBattle>) {
-              // The battle ending doesn't cause the action order to restart, but will stop any additional effects from being applied
-              // end the battle
-              b.EndBattle(r.winners);
-              return false;
-            } else if constexpr (std::is_same_v<T, EffectResult::RequestCommands>) {
-              // Requesting additional dynamic commands requires working from the start of the action order
-              auto commands = RequestCommands(r.players);
-              auto actions  = GetActions(commands);
-              turn.AddActions(actions);
-              return true;
-            } else if constexpr (std::is_same_v<T, EffectResult::Success>) {
-              return false;
-            }
-          },
-                                    res.value());
+          [[maybe_unused]] auto [status, winners, command_requests, events, buffered_commands] = res.value();
+
+          // [[maybe_unused]] auto status            = std::get<EffectResult::Status>(res);
+          // [[maybe_unused]] auto winners           = std::get<1>(res);
+          // [[maybe_unused]] auto command_requests  = std::get<2>(res);
+          // [[maybe_unused]] auto events            = std::get<3>(res);
+          // [[maybe_unused]] auto buffered_commands = std::get<4>(res);
+
+          bool restart = false;
+          // auto restart = std::visit([&, this](auto &&r) {
+          //   using T = std::decay_t<decltype(r)>;
+          //   if constexpr (std::is_same_v<T, EffectResult::EndBattle>) {
+          //     // The battle ending doesn't cause the action order to restart, but will stop any additional effects from being applied
+          //     // end the battle
+          //     b.EndBattle(r.winners);
+          //     return false;
+          //   } else if constexpr (std::is_same_v<T, EffectResult::RequestCommands>) {
+          //     // Requesting additional dynamic commands requires working from the start of the action order
+          //     auto commands = RequestCommands(r.players);
+          //     auto actions  = GetActions(commands);
+          //     turn.AddActions(actions);
+          //     return true;
+          //   } else if constexpr (std::is_same_v<T, EffectResult::Success>) {
+          //     return false;
+          //   }
+          // },
+          //                           res.value());
 
           if (restart) {
             return restart;
@@ -223,11 +232,11 @@ protected:
 
   std::vector<std::unique_ptr<PlayerComms<TCommandPayload>>> players_;
 
-  EventHandler<TBattle, TEvents> event_handlers_;
+  EventHandler<TBattle, TCommand, TEvents> event_handlers_;
 
   CommandValidator command_validator_;
   std::function<std::vector<TCommand>(const std::vector<TCommand> &)> command_orderer_;
-  std::function<std::vector<Action<TBattle>>(const std::vector<TCommand> &)> action_translator_;
+  std::function<std::vector<Action<TBattle, TEvents, TCommand>>(const std::vector<TCommand> &)> action_translator_;
 
   std::vector<std::vector<TCommand>> queued_commands_;
 };
