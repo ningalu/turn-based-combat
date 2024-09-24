@@ -8,12 +8,12 @@
 #include "tbc/Target.h"
 
 namespace ngl::tbc {
-template <typename TBattle>
+template <typename TBattle, typename TEvents, typename TCommands>
 class DeferredEffect {
-  using Result = Effect<TBattle>::Result;
+  using Result = Effect<TBattle, TEvents, TCommands>::Result;
 
 public:
-  DeferredEffect(const std::vector<Effect<TBattle>> &effects, const std::vector<Target> &targets) : effects_{effects}, targets_{targets} {}
+  DeferredEffect(const std::vector<Effect<TBattle, TEvents, TCommands>> &effects, const std::vector<Target> &targets) : effects_{effects}, targets_{targets} {}
   [[nodiscard]] std::optional<Result> ApplyNext(TBattle &b) {
     std::optional<Result> out = std::nullopt;
     if (effects_.size() > 0) {
@@ -28,7 +28,7 @@ public:
   }
 
 protected:
-  std::vector<Effect<TBattle>> effects_;
+  std::vector<Effect<TBattle, TEvents, TCommands>> effects_;
   std::vector<Target> targets_;
 };
 } // namespace ngl::tbc

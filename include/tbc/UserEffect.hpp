@@ -6,10 +6,10 @@
 #include "tbc/Target.h"
 
 namespace ngl::tbc {
-template <typename TBattle>
+template <typename TBattle, typename TEvents, typename TCommands>
 class UserEffect {
 public:
-  using Result = Effect<TBattle>::Result;
+  using Result = Effect<TBattle, TEvents, TCommands>::Result;
 
   UserEffect(std::function<Result(Slot::Index, TBattle &, const std::vector<Target> &)> f) : xfer_{f} {}
 
