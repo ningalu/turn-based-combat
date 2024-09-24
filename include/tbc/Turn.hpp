@@ -7,19 +7,19 @@
 #include "tbc/Action.hpp"
 
 namespace ngl::tbc {
-template <typename TBattle>
+template <typename TBattle, typename TEvents, typename TCommands>
 struct Turn {
-  Turn(const std::vector<Action<TBattle>> &static_actions_) : static_actions{static_actions_} {}
+  Turn(const std::vector<Action<TBattle, TEvents, TCommands>> &static_actions_) : static_actions{static_actions_} {}
 
-  void AddAction(const Action<TBattle> &action) {
+  void AddAction(const Action<TBattle, TEvents, TCommands> &action) {
     dynamic_actions.insert(dynamic_actions.begin(), action);
   }
 
-  void AddActions(const std::vector<Action<TBattle>> &action) {
+  void AddActions(const std::vector<Action<TBattle, TEvents, TCommands>> &action) {
     dynamic_actions.insert(dynamic_actions.begin(), action.begin(), action.end());
   }
 
-  std::vector<Action<TBattle>> dynamic_actions, static_actions;
+  std::vector<Action<TBattle, TEvents, TCommands>> dynamic_actions, static_actions;
 };
 } // namespace ngl::tbc
 

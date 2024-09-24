@@ -19,7 +19,9 @@
 namespace ngl::tbc {
 template <typename TCommand, typename TBattle, typename TEvents>
 class BattleScheduler {
-  using TCommandPayload = TCommand::Payload;
+  using TCommandPayload  = TCommand::Payload;
+  using TAction          = Action<TBattle, TEvents, TCommand>;
+  using CommandValidator = std::function<std::optional<std::vector<TCommandPayload>>(std::size_t, std::vector<TCommandPayload>, const std::vector<TCommand> &)>;
 
 public:
   BattleScheduler(std::vector<std::unique_ptr<PlayerComms<TCommandPayload>>> players) : players_{std::move(players)} {}
@@ -32,14 +34,14 @@ public:
 
       // Async poll each player for static commands, rejecting and repolling if any are invalid
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
-        std::vector<TCommandPayload> payloads;
+        std::optional<std::vector<TCommandPayload>> payloads;
         do {
-          payloads = players_.at(player)->GetStaticCommand().get();
-
-        } while (!ValidateCommands(player, payloads));
+          const auto incoming_payloads = players_.at(player)->GetStaticCommand().get();
+          payloads                     = ValidateCommands(player, incoming_payloads, (queued_commands_.size() > 0 ? queued_commands_.at(0) : std::vector<TCommand>{}));
+        } while (!payloads.has_value());
 
         std::vector<TCommand> commands;
-        for (const auto &payload : payloads) {
+        for (const auto &payload : payloads.value()) {
           commands.push_back(TCommand{player, payload});
         }
         return commands;
@@ -55,31 +57,41 @@ public:
   }
 
   template <typename TSpecificEvent>
-  void SetHandler(std::function<Action<TBattle>(TSpecificEvent)> handler) {
+  void SetHandler(std::function<TAction(TSpecificEvent)> handler) {
     event_handlers_.RegisterHandler<TSpecificEvent>(handler);
   }
 
   template <typename TSpecificEvent>
-  [[nodiscard]] std::optional<Action<TBattle>> PostEvent(const TSpecificEvent &e) const {
-    std::optional<Action<TBattle>> out = std::nullopt;
+  [[nodiscard]] std::optional<TAction> PostEvent(const TSpecificEvent &e) const {
+    std::optional<TAction> out = std::nullopt;
     if (event_handlers_.HasHandler<TSpecificEvent>()) {
       out = event_handlers_.PostEvent<TSpecificEvent>(e);
     }
     return out;
   }
 
-  void SetCommandValidator(const std::function<bool(std::size_t, std::vector<TCommandPayload>)> &validator) {
+  [[nodiscard]] std::optional<TAction> PostEvent(const TEvents &e) const {
+    return std::visit([&, this](auto &&event) {
+      using T = std::decay_t<decltype(event)>;
+      return PostEvent<T>(event);
+    },
+                      e.payload);
+  }
+
+  void SetCommandValidator(const CommandValidator &validator) {
     command_validator_ = validator;
   }
 
   // TODO: is there actually any meaningful domain-agnostic validation that can be done here?
-  [[nodiscard]] bool ValidateCommands(std::size_t authority, const std::vector<TCommandPayload> &commands) const {
+  [[nodiscard]] std::optional<std::vector<TCommandPayload>> ValidateCommands(std::size_t authority, const std::vector<TCommandPayload> &commands, const std::vector<TCommand> &buffered) const {
     if (command_validator_) {
-      if (!command_validator_(authority, commands)) {
-        return false;
-      }
+      return command_validator_(authority, commands, buffered);
     }
-    return true;
+    auto out = commands;
+    for (const auto &b : buffered) {
+      out.push_back(b.payload);
+    }
+    return commands;
   }
 
   void SetCommandOrderer(const std::function<std::vector<TCommand>(const std::vector<TCommand> &)> &orderer) {
@@ -90,16 +102,16 @@ public:
     return command_orderer_ ? command_orderer_(commands) : commands;
   }
 
-  void SetActionTranslator(const std::function<std::vector<Action<TBattle>>(const std::vector<TCommand> &)> &translator) {
+  void SetActionTranslator(const std::function<std::vector<TAction>(const std::vector<TCommand> &)> &translator) {
     action_translator_ = translator;
   }
 
-  [[nodiscard]] std::vector<Action<TBattle>> GetActions(const std::vector<TCommand> &commands) const {
+  [[nodiscard]] std::vector<TAction> GetActions(const std::vector<TCommand> &commands) const {
     assert(action_translator_);
     return action_translator_(commands);
   }
 
-  void RunTurn(Turn<TBattle> turn, TBattle &b) {
+  void RunTurn(Turn<TBattle, TEvents, TCommand> turn, TBattle &b) {
     auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({});
     if (pre_turn.has_value()) {
       turn.AddAction(pre_turn.value());
@@ -137,7 +149,7 @@ public:
       const auto commands         = RequestCommands(player_indices);
       const auto ordered_commands = OrderCommands(commands);
       const auto actions          = GetActions(ordered_commands);
-      Turn<TBattle> turn{actions};
+      Turn<TBattle, TEvents, TCommand> turn{actions};
       if (i == 0) {
         auto event_action = PostEvent(DefaultEvents::BattleStart{});
         if (event_action.has_value()) {
@@ -145,13 +157,17 @@ public:
         }
       }
       RunTurn(turn, b);
+
+      if (queued_commands_.size() > 0) {
+        queued_commands_.erase(queued_commands_.begin());
+      }
     }
 
     return b.GetWinners();
   }
 
 protected:
-  [[nodiscard]] bool RunTurnUntilRestart(Turn<TBattle> &turn, TBattle &b) {
+  [[nodiscard]] bool RunTurnUntilRestart(Turn<TBattle, TEvents, TCommand> &turn, TBattle &b) {
     for (auto *actions_ptr : {&turn.dynamic_actions, &turn.static_actions}) {
       auto &actions            = *actions_ptr;
       bool trigger_turn_events = (actions_ptr == &turn.static_actions);
@@ -170,24 +186,35 @@ protected:
             break;
           }
 
-          auto restart = std::visit([&, this](auto &&r) {
-            using T = std::decay_t<decltype(r)>;
-            if constexpr (std::is_same_v<T, EffectResult::EndBattle>) {
-              // The battle ending doesn't cause the action order to restart, but will stop any additional effects from being applied
-              // end the battle
-              b.EndBattle(r.winners);
-              return false;
-            } else if constexpr (std::is_same_v<T, EffectResult::RequestCommands>) {
-              // Requesting additional dynamic commands requires working from the start of the action order
-              auto commands = RequestCommands(r.players);
-              auto actions  = GetActions(commands);
-              turn.AddActions(actions);
-              return true;
-            } else if constexpr (std::is_same_v<T, EffectResult::Success>) {
-              return false;
+          [[maybe_unused]] auto [status, winners, command_requests, events, buffered_commands] = res.value();
+
+          bool restart = false;
+
+          if (winners.winners.size() > 0) {
+            b.EndBattle(winners.winners);
+            return false;
+          }
+
+          // TODO: This order causes event actions to run before requested commands. give more control over this?
+          // allow effects to trigger these things themselves? that would require a lot of changes
+          if (command_requests.players.size() > 0) {
+            auto commands        = RequestCommands(command_requests.players);
+            auto dynamic_actions = GetActions(commands);
+            turn.AddActions(dynamic_actions);
+            restart = true;
+          }
+
+          for (auto it = events.events.rbegin(); it != events.events.rend(); it++) {
+            TEvents queued_event    = *it;
+            const auto event_action = PostEvent(queued_event);
+            if (event_action.has_value()) {
+              turn.AddAction(event_action.value());
             }
-          },
-                                    res.value());
+          };
+
+          for (const auto &[command, time] : buffered_commands.commands) {
+            BufferCommand(command, time);
+          }
 
           if (restart) {
             return restart;
@@ -205,13 +232,23 @@ protected:
     return false;
   }
 
+  void BufferCommand(const TCommand &c, std::size_t turns_ahead) {
+    while (queued_commands_.size() < (turns_ahead + 1)) {
+      queued_commands_.push_back({});
+    }
+
+    queued_commands_.at(turns_ahead).push_back(c);
+  }
+
   std::vector<std::unique_ptr<PlayerComms<TCommandPayload>>> players_;
 
-  EventHandler<TBattle, TEvents> event_handlers_;
+  EventHandler<TBattle, TCommand, TEvents> event_handlers_;
 
-  std::function<bool(std::size_t, std::vector<TCommandPayload>)> command_validator_;
+  CommandValidator command_validator_;
   std::function<std::vector<TCommand>(const std::vector<TCommand> &)> command_orderer_;
-  std::function<std::vector<Action<TBattle>>(const std::vector<TCommand> &)> action_translator_;
+  std::function<std::vector<TAction>(const std::vector<TCommand> &)> action_translator_;
+
+  std::vector<std::vector<TCommand>> queued_commands_;
 };
 } // namespace ngl::tbc
 

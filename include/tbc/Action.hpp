@@ -12,18 +12,18 @@
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
-template <typename TBattle>
+template <typename TBattle, typename TEvents, typename TCommands>
 class Action {
-  using Deferred = std::variant<DeferredEffect<TBattle>, DeferredUserEffect<TBattle>>;
+  using Deferred = std::variant<DeferredEffect<TBattle, TEvents, TCommands>, DeferredUserEffect<TBattle, TEvents, TCommands>>;
 
 public:
-  using Result = Effect<TBattle>::Result;
+  using Result = Effect<TBattle, TEvents, TCommands>::Result;
 
-  Action(const DeferredEffect<TBattle> &d) : Action(Deferred{d}) {}
-  Action(const DeferredUserEffect<TBattle> &d) : Action(Deferred{d}) {}
+  Action(const DeferredEffect<TBattle, TEvents, TCommands> &d) : Action(Deferred{d}) {}
+  Action(const DeferredUserEffect<TBattle, TEvents, TCommands> &d) : Action(Deferred{d}) {}
   Action(const Deferred &d) : effect_{d}, started_{false} {}
 
-  [[nodiscard]] std::optional<typename Effect<TBattle>::Result> ApplyNext(TBattle &b) {
+  [[nodiscard]] std::optional<typename Effect<TBattle, TEvents, TCommands>::Result> ApplyNext(TBattle &b) {
     if (!started_) {
       started_ = true;
     }

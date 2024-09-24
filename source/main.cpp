@@ -54,8 +54,10 @@ using MyDefEffect     = MyBattleTypes::DeferredEffect;
 using MyUserEffect    = MyBattleTypes::UserEffect;
 using MyDefUserEffect = MyBattleTypes::DeferredUserEffect;
 
+using MyResult = MyBattleTypes::EffectResult;
+
 const MyEffect debug_effect{
-  [](MyBattle &b, const std::vector<ngl::tbc::Target> &) { std::cout << "debug effect\n"; b.EndBattle({0}); return ngl::tbc::EffectResult::Success{}; }
+  [](MyBattle &b, const std::vector<ngl::tbc::Target> &) { std::cout << "debug effect\n"; b.EndBattle({0}); return MyResult{}; }
 };
 
 const MyEffect resolve_rps_effect{
@@ -69,7 +71,7 @@ const MyEffect resolve_rps_effect{
       b.EndBattle({1});
     }
 
-    return ngl::tbc::EffectResult::Success{}; }
+    return MyResult{}; }
 };
 
 MyUserEffect GetEffect(int state) {
@@ -80,7 +82,7 @@ MyUserEffect GetEffect(int state) {
       default: throw std::logic_error{"invalid side"};
     }
     std::cout << "setting " << u.side << " to " << state << "\n";
-    return ngl::tbc::EffectResult::Success{}; }};
+    return MyResult{}; }};
 }
 
 using MyAction = MyBattleTypes::Action;
@@ -124,7 +126,7 @@ auto main() -> int {
   auto b  = MyBattle{0, l};
   auto bs = ngl::tbc::BattleScheduler<MyCommands, MyBattle, MyEvents>{std::move(players)};
 
-  bs.SetCommandValidator([](std::size_t, const std::vector<MyCommandPayload> &) { return true; });
+  bs.SetCommandValidator([](std::size_t, const std::vector<MyCommandPayload> &payload, const std::vector<MyCommands> &) { return payload; });
   bs.SetActionTranslator([](const std::vector<MyCommands> &commands) {
     auto out = std::vector<MyAction>{};
     for (const auto &c : commands) {
