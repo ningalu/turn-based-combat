@@ -19,8 +19,8 @@
 namespace ngl::tbc {
 template <typename TCommand, typename TBattle, typename TEvents>
 class BattleScheduler {
-  using TCommandPayload = TCommand::Payload;
-
+  using TCommandPayload  = TCommand::Payload;
+  using TAction          = Action<TBattle, TEvents, TCommand>;
   using CommandValidator = std::function<std::optional<std::vector<TCommandPayload>>(std::size_t, std::vector<TCommandPayload>, const std::vector<TCommand> &)>;
 
 public:
@@ -57,20 +57,20 @@ public:
   }
 
   template <typename TSpecificEvent>
-  void SetHandler(std::function<Action<TBattle, TEvents, TCommand>(TSpecificEvent)> handler) {
+  void SetHandler(std::function<TAction(TSpecificEvent)> handler) {
     event_handlers_.RegisterHandler<TSpecificEvent>(handler);
   }
 
   template <typename TSpecificEvent>
-  [[nodiscard]] std::optional<Action<TBattle, TEvents, TCommand>> PostEvent(const TSpecificEvent &e) const {
-    std::optional<Action<TBattle, TEvents, TCommand>> out = std::nullopt;
+  [[nodiscard]] std::optional<TAction> PostEvent(const TSpecificEvent &e) const {
+    std::optional<TAction> out = std::nullopt;
     if (event_handlers_.HasHandler<TSpecificEvent>()) {
       out = event_handlers_.PostEvent<TSpecificEvent>(e);
     }
     return out;
   }
 
-  [[nodiscard]] std::optional<Action<TBattle, TEvents, TCommand>> PostEvent(const TEvents &e) const {
+  [[nodiscard]] std::optional<TAction> PostEvent(const TEvents &e) const {
     return std::visit([&, this](auto &&event) {
       using T = std::decay_t<decltype(event)>;
       return PostEvent<T>(event);
@@ -102,11 +102,11 @@ public:
     return command_orderer_ ? command_orderer_(commands) : commands;
   }
 
-  void SetActionTranslator(const std::function<std::vector<Action<TBattle, TEvents, TCommand>>(const std::vector<TCommand> &)> &translator) {
+  void SetActionTranslator(const std::function<std::vector<TAction>(const std::vector<TCommand> &)> &translator) {
     action_translator_ = translator;
   }
 
-  [[nodiscard]] std::vector<Action<TBattle, TEvents, TCommand>> GetActions(const std::vector<TCommand> &commands) const {
+  [[nodiscard]] std::vector<TAction> GetActions(const std::vector<TCommand> &commands) const {
     assert(action_translator_);
     return action_translator_(commands);
   }
@@ -246,7 +246,7 @@ protected:
 
   CommandValidator command_validator_;
   std::function<std::vector<TCommand>(const std::vector<TCommand> &)> command_orderer_;
-  std::function<std::vector<Action<TBattle, TEvents, TCommand>>(const std::vector<TCommand> &)> action_translator_;
+  std::function<std::vector<TAction>(const std::vector<TCommand> &)> action_translator_;
 
   std::vector<std::vector<TCommand>> queued_commands_;
 };
