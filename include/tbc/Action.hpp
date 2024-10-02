@@ -16,29 +16,41 @@ template <typename TBattle, typename TEvents, typename TCommands>
 class Action {
   using Deferred = std::variant<DeferredEffect<TBattle, TEvents, TCommands>, DeferredUserEffect<TBattle, TEvents, TCommands>>;
 
+  template <typename T>
+  [[nodiscard]] static std::vector<Deferred> DeferredVec(const std::vector<T> &dv) {
+    static_assert(std::is_same_v<T, DeferredEffect<TBattle, TEvents, TCommands>> || std::is_same_v<T, DeferredUserEffect<TBattle, TEvents, TCommands>>);
+    std::vector<Deferred> out;
+    for (const auto &e : dv) {
+      out.push_back(Deferred{e});
+    }
+    return out;
+  }
+
 public:
   using Result = Effect<TBattle, TEvents, TCommands>::Result;
 
-  Action(const DeferredEffect<TBattle, TEvents, TCommands> &d) : Action(Deferred{d}) {}
-  Action(const DeferredUserEffect<TBattle, TEvents, TCommands> &d) : Action(Deferred{d}) {}
-  Action(const Deferred &d) : effect_{d}, started_{false} {}
+  Action(const std::vector<DeferredEffect<TBattle, TEvents, TCommands>> &d) : Action(DeferredVec(d)) {}
+  Action(const std::vector<DeferredUserEffect<TBattle, TEvents, TCommands>> &d) : Action(DeferredVec(d)) {}
+  Action(const std::vector<Deferred> &d) : effects_{d}, started_{false} {}
 
-  [[nodiscard]] std::optional<typename Effect<TBattle, TEvents, TCommands>::Result> ApplyNext(TBattle &b) {
+  [[nodiscard]] std::optional<Result> ApplyNext(TBattle &b) {
     if (!started_) {
       started_ = true;
     }
 
-    return std::visit([&](auto &&deferred) {
-      return deferred.Done() ? std::nullopt : deferred.ApplyNext(b);
-    },
-                      effect_);
+    std::optional<Result> out;
+    if (!Done()) {
+      out = std::visit([&](auto &&deferred) {
+        return deferred.Apply(b);
+      },
+                       *effects_.begin());
+      effects_.erase(effects_.begin());
+    }
+    return out;
   }
 
   [[nodiscard]] bool Done() {
-    return std::visit([&](auto &&deferred) {
-      return deferred.Done();
-    },
-                      effect_);
+    return !(effects_.size() > 0);
   }
 
   [[nodiscard]] bool Started() {
@@ -46,7 +58,7 @@ public:
   }
 
 protected:
-  Deferred effect_;
+  std::vector<Deferred> effects_;
 
   bool started_;
 };
