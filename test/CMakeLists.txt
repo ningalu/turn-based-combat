@@ -13,7 +13,6 @@ include(Catch)
 
 add_executable(
     ningalu-turn-based-combat-2_test 
-    source/ningalu-turn-based-combat-2_test.cpp
     source/tbc/EventHandlerTest.cpp
 )
 
