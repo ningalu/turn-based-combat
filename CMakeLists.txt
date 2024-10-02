@@ -4,7 +4,7 @@ include(cmake/prelude.cmake)
 
 project(
     ningalu-turn-based-combat-2
-    VERSION 0.0.0
+    VERSION 0.1.0
     DESCRIPTION "Short description"
     HOMEPAGE_URL "https://example.com/"
     LANGUAGES CXX
