@@ -108,8 +108,8 @@ MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Targe
     throw std::logic_error{"invalid state"};
   }
 
-  MyDefUserEffect e{user, {GetEffect(state)}, targets};
-  return MyAction{e};
+  MyDefUserEffect e{user, GetEffect(state), targets};
+  return MyAction{std::vector<MyDefUserEffect>{e}};
 }
 
 MyAction GetActionWithIntEffect(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Target> &targets, int state) {
@@ -118,7 +118,7 @@ MyAction GetActionWithIntEffect(ngl::tbc::Slot::Index user, const std::vector<ng
   }
 
   MyDefUserEffect e{user, {GetEffectWithIntEvent(state)}, targets};
-  return MyAction{e};
+  return MyAction{std::vector<MyDefUserEffect>{e}};
 }
 
 std::function<std::vector<MyCommandPayload>()> GetComms(int n) {
@@ -183,12 +183,12 @@ auto int_event_translator = [](const std::vector<MyCommands> &commands) {
 };
 
 MyAction default_turnend(ngl::tbc::DefaultEvents::TurnsEnd) {
-  return MyAction{MyDefEffect{{resolve_rps_effect}, {}}};
+  return MyAction{std::vector<MyDefEffect>{MyDefEffect{resolve_rps_effect, {}}}};
 }
 
 MyAction default_intevent(int n) {
   std::cout << "int event received: " << n << "\n";
-  return MyAction{MyDefEffect{{DebugEffect(n)}, {}}};
+  return MyAction{std::vector<MyDefEffect>{MyDefEffect{{DebugEffect(n)}, {}}}};
 }
 
 auto default_layout = ngl::tbc::Layout{{{{0}}, {{1}}}};

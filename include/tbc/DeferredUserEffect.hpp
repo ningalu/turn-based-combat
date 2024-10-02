@@ -14,23 +14,15 @@ class DeferredUserEffect {
   using Result = UserEffect<TBattle, TEvents, TCommands>::Result;
 
 public:
-  DeferredUserEffect(Slot::Index user, const std::vector<UserEffect<TBattle, TEvents, TCommands>> &effects, const std::vector<Target> &targets) : user_{user}, effects_{effects}, targets_{targets} {}
-  [[nodiscard]] std::optional<Result> ApplyNext(TBattle &b) {
-    std::optional<Result> out = std::nullopt;
-    if (effects_.size() > 0) {
-      out = effects_.at(0).Apply(user_, b, targets_);
-      effects_.erase(effects_.begin());
-    }
-    return out;
-  }
+  DeferredUserEffect(Slot::Index user, const UserEffect<TBattle, TEvents, TCommands> &effect, const std::vector<Target> &targets) : user_{user}, effect_{effect}, targets_{targets} {}
 
-  [[nodiscard]] bool Done() const {
-    return !(effects_.size() > 0);
+  [[nodiscard]] Result Apply(TBattle &b) {
+    return effect_.Apply(user_, b, targets_);
   }
 
 protected:
   Slot::Index user_;
-  std::vector<UserEffect<TBattle, TEvents, TCommands>> effects_;
+  UserEffect<TBattle, TEvents, TCommands> effect_;
   std::vector<Target> targets_;
 };
 } // namespace ngl::tbc

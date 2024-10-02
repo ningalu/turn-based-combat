@@ -13,22 +13,14 @@ class DeferredEffect {
   using Result = Effect<TBattle, TEvents, TCommands>::Result;
 
 public:
-  DeferredEffect(const std::vector<Effect<TBattle, TEvents, TCommands>> &effects, const std::vector<Target> &targets) : effects_{effects}, targets_{targets} {}
-  [[nodiscard]] std::optional<Result> ApplyNext(TBattle &b) {
-    std::optional<Result> out = std::nullopt;
-    if (effects_.size() > 0) {
-      out = effects_.at(0).Apply(b, targets_);
-      effects_.erase(effects_.begin());
-    }
-    return out;
-  }
+  DeferredEffect(const Effect<TBattle, TEvents, TCommands> &effect, const std::vector<Target> &targets) : effect_{effect}, targets_{targets} {}
 
-  [[nodiscard]] bool Done() const {
-    return !(effects_.size() > 0);
+  [[nodiscard]] Result Apply(TBattle &b) {
+    return effect_.Apply(b, targets_);
   }
 
 protected:
-  std::vector<Effect<TBattle, TEvents, TCommands>> effects_;
+  Effect<TBattle, TEvents, TCommands> effect_;
   std::vector<Target> targets_;
 };
 } // namespace ngl::tbc
