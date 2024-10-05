@@ -3,7 +3,7 @@
 
 #include "tbc/Effect.hpp"
 #include "tbc/Slot.h"
-#include "tbc/Target.h"
+#include "tbc/Target.hpp"
 
 namespace ngl::tbc {
 template <typename TBattle, typename TEvents, typename TCommands>

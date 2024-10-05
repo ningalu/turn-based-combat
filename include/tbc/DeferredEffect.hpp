@@ -5,7 +5,7 @@
 
 #include "tbc/Battle.hpp"
 #include "tbc/Effect.hpp"
-#include "tbc/Target.h"
+#include "tbc/Target.hpp"
 
 namespace ngl::tbc {
 template <typename TBattle, typename TEvents, typename TCommands>

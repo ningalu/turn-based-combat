@@ -1,4 +1,4 @@
-#include "tbc/Target.h"
+#include "tbc/Target.hpp"
 
 namespace ngl::tbc {
 Target::Target(SlotTarget t) : payload{t} {}

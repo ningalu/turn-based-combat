@@ -10,7 +10,9 @@ class Side {
 public:
   Side(std::vector<Slot> slots);
 
-  [[nodiscard]] Slot GetSlot(std::size_t i);
+  [[nodiscard]] Slot &slot(std::size_t i);
+  [[nodiscard]] const Slot &slot(std::size_t i) const;
+  [[nodiscard]] std::size_t size() const;
 
 protected:
   std::vector<Slot> slots_;

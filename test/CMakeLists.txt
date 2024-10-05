@@ -14,6 +14,8 @@ include(Catch)
 add_executable(
     ningalu-turn-based-combat-2_test 
     source/tbc/EventHandlerTest.cpp
+    source/tbc/LayoutTest.cpp
+    source/tbc/TargetTest.cpp
 )
 
 target_link_libraries(

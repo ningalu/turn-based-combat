@@ -8,7 +8,7 @@
 #include "tbc/DeferredEffect.hpp"
 #include "tbc/DeferredUserEffect.hpp"
 #include "tbc/Slot.h"
-#include "tbc/Target.h"
+#include "tbc/Target.hpp"
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
