@@ -19,7 +19,7 @@
 #include "tbc/Layout.h"
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Slot.h"
-#include "tbc/Target.h"
+#include "tbc/Target.hpp"
 #include "tbc/Turn.hpp"
 #include "tbc/UserEffect.hpp"
 

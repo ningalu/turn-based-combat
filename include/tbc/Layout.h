@@ -11,6 +11,8 @@ class Layout {
 public:
   Layout(std::vector<Side> structure);
 
+  [[nodiscard]] const Slot &GetSlot(Slot::Index i) const;
+
 protected:
   std::vector<Side> structure_;
 };

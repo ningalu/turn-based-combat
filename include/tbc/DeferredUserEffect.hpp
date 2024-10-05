@@ -5,7 +5,7 @@
 
 #include "tbc/Battle.hpp"
 #include "tbc/Slot.h"
-#include "tbc/Target.h"
+#include "tbc/Target.hpp"
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {

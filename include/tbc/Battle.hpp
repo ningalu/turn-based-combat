@@ -13,8 +13,8 @@ namespace ngl::tbc {
 template <typename TUnit, typename TState>
 class Battle : public TState {
 public:
-  Battle(std::size_t seed, const Layout &layout) : TState{}, seed_{seed}, layout_{layout} {}
   Battle(const TState &state_, std::size_t seed, const Layout &layout) : TState{state_}, seed_{seed}, layout_{layout} {}
+  Battle(std::size_t seed, const Layout &layout) : Battle{{}, seed, layout} {}
 
   void EndBattle(std::vector<std::size_t> winners) {
     winner_indices_ = winners;
@@ -26,6 +26,10 @@ public:
 
   [[nodiscard]] std::vector<std::size_t> GetWinners() const {
     return winner_indices_.value();
+  }
+
+  [[nodiscard]] Slot GetSlot(Slot::Index i) const {
+    return layout_.GetSlot(i);
   }
 
 protected:
