@@ -16,6 +16,10 @@ public:
   Battle(const TState &state_, std::size_t seed, const Layout &layout) : TState{state_}, seed_{seed}, layout_{layout} {}
   Battle(std::size_t seed, const Layout &layout) : Battle{{}, seed, layout} {}
 
+  [[nodiscard]] const Layout &layout() const {
+    return layout_;
+  }
+
   void EndBattle(std::vector<std::size_t> winners) {
     winner_indices_ = winners;
   }

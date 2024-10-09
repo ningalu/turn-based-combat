@@ -137,8 +137,8 @@ std::function<std::vector<MyCommandPayload>()> GetComms(int n) {
   };
 };
 
-auto default_validator  = [](std::size_t, const std::vector<MyCommandPayload> &payload, const std::vector<MyCommands> &) { return payload; };
-auto default_translator = [](const std::vector<MyCommands> &commands) {
+auto default_validator  = [](std::size_t, const std::vector<MyCommandPayload> &payload, const std::vector<MyCommands> &, const MyBattle &) { return payload; };
+auto default_translator = [](const std::vector<MyCommands> &commands, const MyBattle &) {
   auto out = std::vector<MyAction>{};
   for (const auto &c : commands) {
     int move = std::visit([](auto &&p) {
@@ -160,7 +160,7 @@ auto default_translator = [](const std::vector<MyCommands> &commands) {
   return out;
 };
 
-auto int_event_translator = [](const std::vector<MyCommands> &commands) {
+auto int_event_translator = [](const std::vector<MyCommands> &commands, const MyBattle &) {
   auto out = std::vector<MyAction>{};
   for (const auto &c : commands) {
     int move = std::visit([](auto &&p) {

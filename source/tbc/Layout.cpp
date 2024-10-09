@@ -17,7 +17,21 @@ Layout::Layout(std::vector<Side> structure) : structure_{structure} {
   }
 }
 
+[[nodiscard]] const std::vector<Side> &Layout::sides() const { return structure_; }
+
 [[nodiscard]] const Slot &Layout::GetSlot(Slot::Index i) const {
   return structure_.at(i.side).slot(i.slot);
 }
+
+[[nodiscard]] std::optional<Slot::Index> Layout::FindSlot(std::size_t owner, std::size_t unit) const {
+  for (std::size_t i = 0; i < structure_.size(); i++) {
+    const auto &side = structure_.at(i);
+    const auto index = side.FindSlot(owner, unit);
+    if (index.has_value()) {
+      return Slot::Index{i, index.value()};
+    }
+  }
+  return std::nullopt;
+}
+
 } // namespace ngl::tbc
