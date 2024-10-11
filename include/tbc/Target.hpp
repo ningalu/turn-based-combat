@@ -10,12 +10,19 @@
 namespace ngl::tbc {
 struct Target {
   using SlotTarget = Slot::Index;
-  using SideTarget = std::size_t;
-  struct BattleTarget {};
+  struct SideTarget {
+    std::size_t side;
+  };
+  struct BattleTarget {
+  };
+  struct PartyTarget {
+    std::size_t member;
+  };
 
   Target(SlotTarget t);
   Target(SideTarget t);
   Target(BattleTarget t);
+  Target(PartyTarget t);
 
   template <typename T>
   [[nodiscard]] static std::vector<T> Filter(const std::vector<Target> &t) {
@@ -32,7 +39,7 @@ struct Target {
     return out;
   }
 
-  std::variant<SlotTarget, SideTarget, BattleTarget> payload;
+  std::variant<SlotTarget, SideTarget, BattleTarget, PartyTarget> payload;
 };
 } // namespace ngl::tbc
 
