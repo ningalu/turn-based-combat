@@ -50,7 +50,7 @@ public:
   }
 
   [[nodiscard]] bool Done() {
-    return !(effects_.size() > 0);
+    return effects_.size() == 0;
   }
 
   [[nodiscard]] bool Started() {

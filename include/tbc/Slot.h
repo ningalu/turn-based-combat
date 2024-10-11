@@ -8,7 +8,7 @@ namespace ngl::tbc {
 struct Slot {
   Slot(std::size_t owner_);
 
-  std::size_t owner;
+  std::size_t party;
 
   // TODO: is leaving this nullopt a reasonable way of signaling that the user doesn't care about manually setting slot indices?
   // maybe make it a constructor flag

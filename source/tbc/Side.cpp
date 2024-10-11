@@ -21,7 +21,7 @@ Side::Side(std::vector<Slot> slots) : slots_{slots} {}
 
 [[nodiscard]] std::optional<std::size_t> Side::FindSlot(std::size_t owner, std::size_t unit) const {
   for (std::size_t i = 0; i < slots_.size(); i++) {
-    if ((slots_.at(i).owner == owner) && (slots_.at(i).index == unit)) {
+    if ((slots_.at(i).party == owner) && (slots_.at(i).index == unit)) {
       return i;
     }
   }
