@@ -21,7 +21,7 @@ struct BattleTypes {
   using Events       = TEvents;
   using EventPayload = Events::Payload;
 
-  using Battle          = Battle<TUnit, TBattleState>;
+  using Battle          = Battle<TUnit, TBattleState, TCommands>;
   using BattleScheduler = BattleScheduler<TCommands, Battle, TEvents>;
 
   using EventHandler = EventHandler<Battle, TCommands, TEvents>;

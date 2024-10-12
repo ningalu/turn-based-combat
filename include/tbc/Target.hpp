@@ -12,6 +12,7 @@ struct Target {
   using SlotTarget = Slot::Index;
   struct SideTarget {
     std::size_t side;
+    [[nodiscard]] bool operator==(const SideTarget &) const noexcept = default;
   };
   struct BattleTarget {
   };

@@ -98,7 +98,7 @@ MyUserEffect GetEffectWithIntEvent(int state) {
     MyResult out;
     MyEvents e;
     e.payload = 2;
-    std::get<3>(out).events.push_back(e);
+    std::get<2>(out).events.push_back(e);
     return out; }};
 }
 
@@ -137,7 +137,7 @@ std::function<std::vector<MyCommandPayload>()> GetComms(int n) {
   };
 };
 
-auto default_validator  = [](std::size_t, const std::vector<MyCommandPayload> &payload, const std::vector<MyCommands> &, const MyBattle &) { return payload; };
+auto default_validator  = [](std::size_t, const std::vector<MyCommandPayload> &payload, const MyBattle &) { return payload; };
 auto default_translator = [](const std::vector<MyCommands> &commands, const MyBattle &) {
   auto out = std::vector<MyAction>{};
   for (const auto &c : commands) {
@@ -218,19 +218,17 @@ auto main() -> int {
     }
   };
 
-  auto p1 = std::make_unique<MyComms>("Player 1", input_comms);
-  auto p2 = std::make_unique<MyComms>("Player 2", GetComms(2));
+  auto p1 = MyComms{"Player 1", input_comms};
+  auto p2 = MyComms{"Player 2", GetComms(2)};
 
-  std::vector<std::unique_ptr<MyComms>> players;
-  players.emplace_back(std::move(p1));
-  players.emplace_back(std::move(p2));
+  std::vector<MyComms> players({p1, p2});
 
-  auto b  = MyBattle{0, default_layout};
-  auto bs = MyScheduler{std::move(players)};
+  auto b = MyBattle{0, players, default_layout};
+  b.SetCommandValidator(default_validator);
 
-  bs.SetCommandValidator(default_validator);
+  MyScheduler bs;
   bs.SetActionTranslator(default_translator);
-
+  bs.SetBattleEndedChecker([](auto &&) { return std::nullopt; });
   bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
 
   auto winners = bs.RunBattle(b);
@@ -241,17 +239,17 @@ auto main() -> int {
 
 void test_battle_end() {
 
-  auto p1 = std::make_unique<MyComms>("Player 1", GetComms(1));
-  auto p2 = std::make_unique<MyComms>("Player 2", GetComms(2));
+  auto p1 = MyComms{"Player 1", GetComms(1)};
+  auto p2 = MyComms{"Player 2", GetComms(2)};
 
-  std::vector<std::unique_ptr<MyComms>> players;
-  players.emplace_back(std::move(p1));
-  players.emplace_back(std::move(p2));
+  std::vector<MyComms> players({p1, p2});
 
-  auto b  = MyBattle{0, default_layout};
-  auto bs = MyScheduler{std::move(players)};
-  bs.SetCommandValidator(default_validator);
+  auto b = MyBattle{0, players, default_layout};
+  b.SetCommandValidator(default_validator);
+
+  MyScheduler bs;
   bs.SetActionTranslator(default_translator);
+  bs.SetBattleEndedChecker([](auto &&) { return std::nullopt; });
   bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
 
   auto winners = bs.RunBattle(b);
@@ -261,17 +259,17 @@ void test_battle_end() {
 }
 
 void test_user_event() {
-  auto p1 = std::make_unique<MyComms>("Player 1", GetComms(1));
-  auto p2 = std::make_unique<MyComms>("Player 2", GetComms(2));
+  auto p1 = MyComms{"Player 1", GetComms(1)};
+  auto p2 = MyComms{"Player 2", GetComms(2)};
 
-  std::vector<std::unique_ptr<MyComms>> players;
-  players.emplace_back(std::move(p1));
-  players.emplace_back(std::move(p2));
+  std::vector<MyComms> players({p1, p2});
 
-  auto b  = MyBattle{0, default_layout};
-  auto bs = MyScheduler{std::move(players)};
-  bs.SetCommandValidator(default_validator);
+  auto b = MyBattle{0, players, default_layout};
+  b.SetCommandValidator(default_validator);
+
+  MyScheduler bs;
   bs.SetActionTranslator(int_event_translator);
+  bs.SetBattleEndedChecker([](auto &&) { return std::nullopt; });
   bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
   bs.SetHandler<int>(default_intevent);
 

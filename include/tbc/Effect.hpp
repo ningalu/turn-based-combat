@@ -21,22 +21,13 @@ struct Winners {
   std::vector<std::size_t> winners;
 };
 
-struct RequestCommands {
-  std::vector<std::size_t> players;
-};
-
 template <typename TEvents>
 struct Events {
   std::vector<TEvents> events;
 };
 
-template <typename TCommand>
-struct BufferCommands {
-  std::vector<std::pair<TCommand, std::size_t>> commands;
-};
-
 template <typename TEvents, typename TCommands>
-using Result = std::tuple<Status, Winners, RequestCommands, Events<TEvents>, BufferCommands<TCommands>>;
+using Result = std::tuple<Status, Winners, Events<TEvents>>;
 } // namespace EffectResult
 
 template <typename TBattle, typename TEvents, typename TCommands>
