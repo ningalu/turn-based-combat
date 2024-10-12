@@ -1,7 +1,8 @@
 #ifndef NGL_UTIL_H
 #define NGL_UTIL_H
 
-namespace ngl {
+// TODO: consolidate misc util stuff into a separate project and FetchContent it? this is a pain in the ass
+namespace ngl::tbc {
 
 [[noreturn]] inline void unreachable() {
   // Uses compiler specific extensions if possible.
@@ -13,6 +14,6 @@ namespace ngl {
   __builtin_unreachable();
 #endif
 }
-} // namespace ngl
+} // namespace ngl::tbc
 
 #endif
