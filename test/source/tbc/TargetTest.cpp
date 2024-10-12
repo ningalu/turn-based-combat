@@ -8,7 +8,7 @@
 TEST_CASE("Targets are filtered correctly", "[Target]") {
   std::vector<ngl::tbc::Target> homogenous_targets;
   const auto initial_slot = ngl::tbc::Slot::Index{0, 1};
-  const auto initial_side = std::size_t{0};
+  const auto initial_side = ngl::tbc::Target::SideTarget{0};
   const auto initial_bat  = ngl::tbc::Target::BattleTarget{};
 
   homogenous_targets.push_back(initial_slot);
