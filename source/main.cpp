@@ -98,7 +98,7 @@ MyUserEffect GetEffectWithIntEvent(int state) {
     MyResult out;
     MyEvents e;
     e.payload = 2;
-    std::get<3>(out).events.push_back(e);
+    std::get<2>(out).events.push_back(e);
     return out; }};
 }
 

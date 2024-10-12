@@ -47,7 +47,7 @@ public:
     return commands;
   }
 
-  [[nodiscard]] std::vector<TCommand> RequestCommands(const std::vector<std::size_t> &players, std::size_t attempts = 10) {
+  [[nodiscard]] std::vector<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 10) {
 
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
@@ -59,7 +59,7 @@ public:
         std::optional<std::vector<TCommandPayload>> payloads;
         for (std::size_t i = 0; i < attempts; i++) {
           const auto incoming_payloads = comms_.at(player).GetCommands().get();
-          payloads                     = ValidateCommands(player, incoming_payloads);
+          payloads                     = (validator ? validator : command_validator_)(player, incoming_payloads, *this);
           if (payloads.has_value()) {
             break;
           }

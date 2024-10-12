@@ -150,7 +150,7 @@ protected:
             break;
           }
 
-          [[maybe_unused]] auto [status, winners, command_requests, events, buffered_commands] = res.value();
+          [[maybe_unused]] auto [status, winners, events] = res.value();
 
           bool restart = false;
 
@@ -166,15 +166,6 @@ protected:
             return false;
           }
 
-          // TODO: This order causes event actions to run before requested commands. give more control over this?
-          // allow effects to trigger these things themselves? that would require a lot of changes
-          if (command_requests.players.size() > 0) {
-            auto commands        = b.RequestCommands(command_requests.players);
-            auto dynamic_actions = GetActions(commands, b);
-            turn.AddActions(dynamic_actions);
-            restart = true;
-          }
-
           for (auto it = events.events.rbegin(); it != events.events.rend(); it++) {
             TEvents queued_event    = *it;
             const auto event_action = PostEvent(queued_event);
@@ -182,10 +173,6 @@ protected:
               turn.AddAction(event_action.value());
             }
           };
-
-          for (const auto &[command, time] : buffered_commands.commands) {
-            b.BufferCommand(command, time);
-          }
 
           if (restart) {
             return restart;
