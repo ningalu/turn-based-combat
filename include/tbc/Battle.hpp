@@ -47,6 +47,10 @@ public:
     return commands;
   }
 
+  [[nodiscard]] std::vector<TCommand> RequestCommands(const std::vector<std::size_t> &players, std::size_t attempts) {
+    return RequestCommands(players, nullptr, attempts);
+  }
+
   [[nodiscard]] std::vector<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 10) {
 
     std::vector<std::future<std::vector<TCommand>>> action_handles;
