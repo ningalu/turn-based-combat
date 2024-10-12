@@ -6,7 +6,7 @@
 #include <utility>
 #include <variant>
 
-#include "util.h"
+#include "tbc/util.h"
 
 #include "tbc/Battle.hpp"
 #include "tbc/BattleScheduler.hpp"
