@@ -7,9 +7,9 @@
 
 struct TestBattleState {};
 
-using TestBattle   = ngl::tbc::Battle<int, TestBattleState>;
-using TestEvents   = ngl::tbc::Event<int, double>;
 using TestCommands = ngl::tbc::Command<int, std::string>;
+using TestEvents   = ngl::tbc::Event<int, double>;
+using TestBattle   = ngl::tbc::Battle<int, TestBattleState, TestCommands>;
 
 using TestDefEffect = ngl::tbc::DeferredEffect<TestBattle, TestEvents, TestCommands>;
 using TestAction    = ngl::tbc::Action<TestBattle, TestEvents, TestCommands>;
