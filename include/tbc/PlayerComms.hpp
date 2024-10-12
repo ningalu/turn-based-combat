@@ -12,8 +12,8 @@ public:
   PlayerComms(const std::string &name, std::function<std::vector<TPayload>()> static_handler)
       : name_{name}, static_handler_{static_handler} {}
 
-  [[nodiscard]] std::future<std::vector<TPayload>> GetStaticCommand() { return std::async(std::launch::async, static_handler_); }
-  void SetStaticCommandHandler(std::function<std::vector<TPayload>()> handler) { static_handler_ = handler; }
+  [[nodiscard]] std::future<std::vector<TPayload>> GetCommands() { return std::async(std::launch::async, static_handler_); }
+  void SetCommandHandler(std::function<std::vector<TPayload>()> handler) { static_handler_ = handler; }
 
 protected:
   std::string name_;
