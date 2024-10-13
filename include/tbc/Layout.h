@@ -10,6 +10,7 @@
 namespace ngl::tbc {
 class Layout {
 public:
+  Layout() = default;
   Layout(std::vector<Side> structure);
 
   [[nodiscard]] const std::vector<Side> &sides() const;

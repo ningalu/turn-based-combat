@@ -182,11 +182,11 @@ auto int_event_translator = [](const std::vector<MyCommands> &commands, const My
   return out;
 };
 
-std::vector<MyAction> default_turnend(ngl::tbc::DefaultEvents::TurnsEnd) {
+std::vector<MyAction> default_turnend(ngl::tbc::DefaultEvents::TurnsEnd, MyBattle &) {
   return {MyAction{std::vector<MyDefEffect>{MyDefEffect{resolve_rps_effect, {}}}}};
 }
 
-std::vector<MyAction> default_intevent(int n) {
+std::vector<MyAction> default_intevent(int n, MyBattle &) {
   std::cout << "int event received: " << n << "\n";
   return {MyAction{std::vector<MyDefEffect>{MyDefEffect{{DebugEffect(n)}, {}}}}};
 }
