@@ -11,7 +11,7 @@ namespace ngl::tbc {
 
 namespace detail {
 template <typename TBattle, typename TEvents, typename TCommands, typename TEvent>
-using EventHandlerCallback = std::function<std::vector<Action<TBattle, TEvents, TCommands>>(TEvent)>;
+using EventHandlerCallback = std::function<std::vector<Action<TBattle, TEvents, TCommands>>(TEvent, TBattle &)>;
 }
 
 template <typename TBattle, typename TCommands, typename TEvent>
@@ -51,9 +51,9 @@ public:
   }
 
   template <typename TSpecificEvent>
-  [[nodiscard]] std::vector<Action<TBattle, Event<TUserPayloads...>, TCommands>> PostEvent(const TSpecificEvent &e) const {
+  [[nodiscard]] std::vector<Action<TBattle, Event<TUserPayloads...>, TCommands>> PostEvent(const TSpecificEvent &e, TBattle &b) const {
     assert(HasHandler<TSpecificEvent>());
-    return std::get<Callback<TSpecificEvent>>(callbacks_)(e);
+    return std::get<Callback<TSpecificEvent>>(callbacks_)(e, b);
   }
 
 protected:

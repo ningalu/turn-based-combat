@@ -29,23 +29,23 @@ class BattleScheduler {
 
 public:
   template <typename TSpecificEvent>
-  void SetHandler(std::function<std::vector<TAction>(TSpecificEvent)> handler) {
+  void SetHandler(std::function<std::vector<TAction>(TSpecificEvent, TBattle &)> handler) {
     event_handlers_.RegisterHandler<TSpecificEvent>(handler);
   }
 
   template <typename TSpecificEvent>
-  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TSpecificEvent &e) const {
+  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TSpecificEvent &e, TBattle &b) const {
     std::optional<std::vector<TAction>> out = std::nullopt;
     if (event_handlers_.HasHandler<TSpecificEvent>()) {
-      out = event_handlers_.PostEvent<TSpecificEvent>(e);
+      out = event_handlers_.PostEvent<TSpecificEvent>(e, b);
     }
     return out;
   }
 
-  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvents &e) const {
+  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvents &e, TBattle &b) const {
     return std::visit([&, this](auto &&event) {
       using T = std::decay_t<decltype(event)>;
-      return PostEvent<T>(event);
+      return PostEvent<T>(event, b);
     },
                       e.payload);
   }
@@ -77,7 +77,7 @@ public:
   }
 
   void RunTurn(Turn<TBattle, TEvents, TCommand> turn, TBattle &b) {
-    auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({});
+    auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({}, b);
     if (pre_turn.has_value()) {
       turn.AddDynamicActions(pre_turn.value());
     }
@@ -91,7 +91,7 @@ public:
 
     // TODO: temp, figure out how to control post battle effects
     if (!b.HasEnded()) {
-      auto post_turn = PostEvent<DefaultEvents::TurnsEnd>({});
+      auto post_turn = PostEvent<DefaultEvents::TurnsEnd>({}, b);
       if (post_turn.has_value()) {
         turn.AddDynamicActions(post_turn.value());
       }
@@ -120,7 +120,7 @@ public:
       // Turn<TBattle, TEvents, TCommand> turn{actions};
       Turn<TBattle, TEvents, TCommand> turn;
       if (i == 0) {
-        auto event_action = PostEvent(DefaultEvents::BattleStart{});
+        auto event_action = PostEvent(DefaultEvents::BattleStart{}, b);
         if (event_action.has_value()) {
           turn.AddDynamicActions(event_action.value());
         }
@@ -154,7 +154,7 @@ protected:
 
       std::vector<TAction> new_dynamic_actions = TranslateActions(commands, battle);
       for (const auto &event : events.events) {
-        const auto event_action = PostEvent(event);
+        const auto event_action = PostEvent(event, battle);
         if (event_action.has_value()) {
           const auto event_action_values = event_action.value();
           new_dynamic_actions.insert(new_dynamic_actions.begin(), event_action_values.begin(), event_action_values.end());
