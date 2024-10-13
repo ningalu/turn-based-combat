@@ -9,6 +9,7 @@
 namespace ngl::tbc {
 template <typename TBattle, typename TEvents, typename TCommands>
 struct Turn {
+  // TODO: this is functionally equivalent to CommandQueue but with actions. is this important?
   Turn() = default;
   Turn(const std::vector<Action<TBattle, TEvents, TCommands>> &static_actions_) : static_actions{static_actions_} {}
 
