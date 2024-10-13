@@ -29,20 +29,20 @@ class BattleScheduler {
 
 public:
   template <typename TSpecificEvent>
-  void SetHandler(std::function<TAction(TSpecificEvent)> handler) {
+  void SetHandler(std::function<std::vector<TAction>(TSpecificEvent)> handler) {
     event_handlers_.RegisterHandler<TSpecificEvent>(handler);
   }
 
   template <typename TSpecificEvent>
-  [[nodiscard]] std::optional<TAction> PostEvent(const TSpecificEvent &e) const {
-    std::optional<TAction> out = std::nullopt;
+  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TSpecificEvent &e) const {
+    std::optional<std::vector<TAction>> out = std::nullopt;
     if (event_handlers_.HasHandler<TSpecificEvent>()) {
       out = event_handlers_.PostEvent<TSpecificEvent>(e);
     }
     return out;
   }
 
-  [[nodiscard]] std::optional<TAction> PostEvent(const TEvents &e) const {
+  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvents &e) const {
     return std::visit([&, this](auto &&event) {
       using T = std::decay_t<decltype(event)>;
       return PostEvent<T>(event);
@@ -79,7 +79,7 @@ public:
   void RunTurn(Turn<TBattle, TEvents, TCommand> turn, TBattle &b) {
     auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({});
     if (pre_turn.has_value()) {
-      turn.AddDynamicAction(pre_turn.value());
+      turn.AddDynamicActions(pre_turn.value());
     }
 
     // Run from the start every time a restart is required
@@ -93,7 +93,7 @@ public:
     if (!b.HasEnded()) {
       auto post_turn = PostEvent<DefaultEvents::TurnsEnd>({});
       if (post_turn.has_value()) {
-        turn.AddDynamicAction(post_turn.value());
+        turn.AddDynamicActions(post_turn.value());
       }
 
       // Run all actions added by post turn event
@@ -122,7 +122,7 @@ public:
       if (i == 0) {
         auto event_action = PostEvent(DefaultEvents::BattleStart{});
         if (event_action.has_value()) {
-          turn.AddDynamicAction(event_action.value());
+          turn.AddDynamicActions(event_action.value());
         }
       }
       RunTurn(turn, b);
@@ -156,7 +156,8 @@ protected:
       for (const auto &event : events.events) {
         const auto event_action = PostEvent(event);
         if (event_action.has_value()) {
-          new_dynamic_actions.push_back(event_action.value());
+          const auto event_action_values = event_action.value();
+          new_dynamic_actions.insert(new_dynamic_actions.begin(), event_action_values.begin(), event_action_values.end());
         }
       }
 
