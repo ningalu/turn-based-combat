@@ -27,7 +27,7 @@ struct Events {
 };
 
 template <typename TEvents, typename TCommands>
-using Result = std::tuple<Status, Winners, Events<TEvents>>;
+using Result = std::tuple<Status, Winners, std::vector<TCommands>, Events<TEvents>>;
 } // namespace EffectResult
 
 template <typename TBattle, typename TEvents, typename TCommands>

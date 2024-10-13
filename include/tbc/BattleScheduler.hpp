@@ -17,10 +17,12 @@
 #include "tbc/Turn.hpp"
 
 namespace ngl::tbc {
-template <typename TCommand, typename TBattle, typename TEvents>
+template <typename TUnit, typename TState, typename TCommand, typename TEvents>
 class BattleScheduler {
-  using TCommandPayload  = TCommand::Payload;
+  using TCommandPayload  = typename TCommand::Payload;
+  using TBattle          = Battle<TUnit, TState, TCommand>;
   using TAction          = Action<TBattle, TEvents, TCommand>;
+  using TTurn            = Turn<TBattle, TEvents, TCommand>;
   using CommandOrderer   = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using ActionTranslator = std::function<std::vector<TAction>(const std::vector<TCommand> &, const TBattle &)>;
   using BattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
@@ -60,7 +62,7 @@ public:
     action_translator_ = translator;
   }
 
-  [[nodiscard]] std::vector<TAction> GetActions(const std::vector<TCommand> &commands, const TBattle &battle) const {
+  [[nodiscard]] std::vector<TAction> TranslateActions(const std::vector<TCommand> &commands, const TBattle &battle) const {
     assert(action_translator_);
     return action_translator_(commands, battle);
   }
@@ -77,11 +79,11 @@ public:
   void RunTurn(Turn<TBattle, TEvents, TCommand> turn, TBattle &b) {
     auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({});
     if (pre_turn.has_value()) {
-      turn.AddAction(pre_turn.value());
+      turn.AddDynamicAction(pre_turn.value());
     }
 
     // Run from the start every time a restart is required
-    while (RunTurnUntilRestart(turn, b)) {
+    while (RunTurnUntilInterrupted(turn, b)) {
       if (b.HasEnded()) {
         return;
       }
@@ -91,11 +93,11 @@ public:
     if (!b.HasEnded()) {
       auto post_turn = PostEvent<DefaultEvents::TurnsEnd>({});
       if (post_turn.has_value()) {
-        turn.AddAction(post_turn.value());
+        turn.AddDynamicAction(post_turn.value());
       }
 
       // Run all actions added by post turn event
-      while (RunTurnUntilRestart(turn, b)) {
+      while (RunTurnUntilInterrupted(turn, b)) {
         if (b.HasEnded()) {
           return;
         }
@@ -112,14 +114,15 @@ public:
 
     for (std::size_t i = 0; !b.HasEnded(); i++) {
 
-      const auto commands         = b.RequestCommands(player_indices);
-      const auto ordered_commands = OrderCommands(commands, b);
-      const auto actions          = GetActions(ordered_commands, b);
-      Turn<TBattle, TEvents, TCommand> turn{actions};
+      b.StartTurn();
+      b.queued_commands.at(0).static_commands = OrderCommands(b.queued_commands.at(0).static_commands, b);
+      // const auto actions                      = TranslateActions(b.queued_commands.at(0).static_commands, b);
+      // Turn<TBattle, TEvents, TCommand> turn{actions};
+      Turn<TBattle, TEvents, TCommand> turn;
       if (i == 0) {
         auto event_action = PostEvent(DefaultEvents::BattleStart{});
         if (event_action.has_value()) {
-          turn.AddAction(event_action.value());
+          turn.AddDynamicAction(event_action.value());
         }
       }
       RunTurn(turn, b);
@@ -131,60 +134,86 @@ public:
   }
 
 protected:
-  [[nodiscard]] bool RunTurnUntilRestart(Turn<TBattle, TEvents, TCommand> &turn, TBattle &b) {
-    for (auto *actions_ptr : {&turn.dynamic_actions, &turn.static_actions}) {
-      auto &actions            = *actions_ptr;
-      bool trigger_turn_events = (actions_ptr == &turn.static_actions);
+  [[nodiscard]] bool ApplyActionUntilInterrupted(TAction &action, TTurn &turn, TBattle &battle) {
+    while (!action.Done()) {
 
-      while (actions.size() > 0) {
-        auto &action = actions.at(0);
+      [[maybe_unused]] auto [status, winners, commands, events] = action.ApplyNext(battle);
 
-        if (trigger_turn_events && (!action.Started())) {
-          std::cout << "Static action start event\n";
-        }
-
-        while (!action.Done()) {
-          auto res = action.ApplyNext(b);
-
-          if (res == std::nullopt) {
-            break;
-          }
-
-          [[maybe_unused]] auto [status, winners, events] = res.value();
-
-          bool restart = false;
-
-          // battle ending can sometimes still require effects to continue to be applied? TODO: research
-          if (winners.winners.size() > 0) {
-            b.EndBattle(winners.winners);
-            return false;
-          }
-
-          const auto manual_winner_check = CheckBattleEnded(b);
-          if (manual_winner_check.has_value()) {
-            b.EndBattle(manual_winner_check.value());
-            return false;
-          }
-
-          for (auto it = events.events.rbegin(); it != events.events.rend(); it++) {
-            TEvents queued_event    = *it;
-            const auto event_action = PostEvent(queued_event);
-            if (event_action.has_value()) {
-              turn.AddAction(event_action.value());
-            }
-          };
-
-          if (restart) {
-            return restart;
-          }
-        }
-
-        if (trigger_turn_events) {
-          std::cout << "Static action end events\n";
-        }
-
-        actions.erase(actions.begin());
+      // if the effect caused the battle to end, report an interruption immediately
+      // battle ending can sometimes still require effects to continue to be applied? TODO: research
+      if (winners.winners.size() > 0) {
+        battle.EndBattle(winners.winners);
+        return false;
       }
+
+      const auto manual_winner_check = CheckBattleEnded(battle);
+      if (manual_winner_check.has_value()) {
+        battle.EndBattle(manual_winner_check.value());
+        return false;
+      }
+
+      std::vector<TAction> new_dynamic_actions = TranslateActions(commands, battle);
+      for (const auto &event : events.events) {
+        const auto event_action = PostEvent(event);
+        if (event_action.has_value()) {
+          new_dynamic_actions.push_back(event_action.value());
+        }
+      }
+
+      if (new_dynamic_actions.size() > 0) {
+        turn.AddDynamicActions(new_dynamic_actions);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  [[nodiscard]] bool RunTurnUntilInterrupted(TTurn &turn, TBattle &battle) {
+    assert(battle.queued_commands.size() > 0);
+    auto &queued_commands = battle.queued_commands.at(0);
+
+    while (turn.dynamic_actions.size() > 0) {
+      while (ApplyActionUntilInterrupted(turn.dynamic_actions.at(0), turn, battle)) {
+        if (battle.HasEnded()) {
+          return true;
+        }
+      }
+      turn.dynamic_actions.erase(turn.dynamic_actions.begin());
+    }
+
+    if (queued_commands.dynamic_commands.size() > 0) {
+      const auto queued_dynamic_command = queued_commands.dynamic_commands.at(0);
+      queued_commands.dynamic_commands.erase(queued_commands.dynamic_commands.begin());
+
+      auto queued_dynamic_action = TranslateActions({queued_dynamic_command}, battle);
+      turn.AddDynamicActions(queued_dynamic_action);
+      return true;
+    }
+
+    while (turn.static_actions.size() > 0) {
+      while (ApplyActionUntilInterrupted(turn.static_actions.at(0), turn, battle)) {
+        if (battle.HasEnded()) {
+          return true;
+        }
+
+        if (queued_commands.dynamic_commands.size() > 0) {
+          return true;
+        }
+
+        if (turn.dynamic_actions.size() > 0) {
+          return true;
+        }
+      }
+      turn.static_actions.erase(turn.static_actions.begin());
+    }
+
+    if (queued_commands.static_commands.size() > 0) {
+      const auto queued_static_command = queued_commands.static_commands.at(0);
+      queued_commands.static_commands.erase(queued_commands.static_commands.begin());
+
+      auto queued_static_action = TranslateActions({queued_static_command}, battle);
+      turn.AddStaticActions(queued_static_action);
+      return true;
     }
 
     return false;
