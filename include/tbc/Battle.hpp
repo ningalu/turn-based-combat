@@ -4,9 +4,11 @@
 #include <cassert>
 #include <cstdint>
 #include <future>
+#include <numeric>
 #include <vector>
 
 #include "tbc/Command.hpp"
+#include "tbc/CommandQueue.hpp"
 #include "tbc/Layout.h"
 #include "tbc/PlayerComms.hpp"
 
@@ -20,7 +22,7 @@ public:
   Battle(const TState &state_, std::size_t seed, const std::vector<PlayerComms<TCommandPayload>> &comms, const Layout &layout) : TState{state_}, seed_{seed}, comms_{comms}, layout_{layout} {}
   Battle(std::size_t seed, const std::vector<PlayerComms<TCommandPayload>> &comms, const Layout &layout) : Battle{{}, seed, comms, layout} {}
 
-  std::vector<std::vector<TCommand>> queued_commands;
+  std::vector<CommandQueue<TCommand>> queued_commands;
 
   [[nodiscard]] const Layout &layout() const {
     return layout_;
@@ -51,8 +53,7 @@ public:
     return RequestCommands(players, nullptr, attempts);
   }
 
-  [[nodiscard]] std::vector<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 10) {
-
+  [[nodiscard]] CommandQueue<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 10) {
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
     for (const auto player : players) {
@@ -86,15 +87,31 @@ public:
       auto val = response.get();
       actions.insert(actions.end(), val.begin(), val.end());
     }
-    return actions;
+    return {{}, actions};
   }
 
   void BufferCommand(const TCommand &c, std::size_t turns_ahead) {
+    assert(turns_ahead != 0);
     while (queued_commands.size() < (turns_ahead + 1)) {
       queued_commands.push_back({});
     }
 
-    queued_commands.at(turns_ahead).push_back(c);
+    queued_commands.at(turns_ahead).BufferCommand(c);
+  }
+
+  void StartTurn() {
+    const auto player_indices = [&, this]() {
+      std::vector<std::size_t> out(PlayerCount());
+      std::iota(out.begin(), out.end(), std::size_t{0});
+      return out;
+    }();
+
+    const auto turn = RequestCommands(player_indices);
+    if (queued_commands.size() == 0) {
+      queued_commands.push_back(turn);
+    } else {
+      queued_commands.at(0) = turn;
+    }
   }
 
   void NextTurn() {

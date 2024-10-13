@@ -33,23 +33,22 @@ public:
   Action(const std::vector<DeferredUserEffect<TBattle, TEvents, TCommands>> &d) : Action(DeferredVec(d)) {}
   Action(const std::vector<Deferred> &d) : effects_{d}, started_{false} {}
 
-  [[nodiscard]] std::optional<Result> ApplyNext(TBattle &b) {
+  [[nodiscard]] Result ApplyNext(TBattle &b) {
+    assert(!Done());
     if (!started_) {
       started_ = true;
     }
 
-    std::optional<Result> out;
-    if (!Done()) {
-      out = std::visit([&](auto &&deferred) {
-        return deferred.Apply(b);
-      },
-                       *effects_.begin());
-      effects_.erase(effects_.begin());
-    }
+    const auto out = std::visit([&](auto &&deferred) {
+      return deferred.Apply(b);
+    },
+                                *effects_.begin());
+    effects_.erase(effects_.begin());
     return out;
   }
 
-  [[nodiscard]] bool Done() {
+  [[nodiscard]] bool
+  Done() {
     return effects_.size() == 0;
   }
 

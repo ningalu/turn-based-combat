@@ -6,7 +6,7 @@
 #include <utility>
 #include <variant>
 
-#include "util.h"
+#include "tbc/util.h"
 
 #include "tbc/Battle.hpp"
 #include "tbc/BattleScheduler.hpp"
@@ -98,7 +98,7 @@ MyUserEffect GetEffectWithIntEvent(int state) {
     MyResult out;
     MyEvents e;
     e.payload = 2;
-    std::get<2>(out).events.push_back(e);
+    std::get<3>(out).events.push_back(e);
     return out; }};
 }
 
@@ -132,7 +132,7 @@ std::function<std::vector<MyCommandPayload>()> GetComms(int n) {
     case 2:
       return std::vector<MyCommandPayload>({MyCommandPayload{ScissorsCommand{}}});
     default:
-      ngl::unreachable();
+      ngl::tbc::unreachable();
     }
   };
 };
