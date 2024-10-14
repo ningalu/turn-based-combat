@@ -56,6 +56,10 @@ public:
     return started_;
   }
 
+  void Stop() {
+    effects_.clear();
+  }
+
 protected:
   std::vector<Deferred> effects_;
 

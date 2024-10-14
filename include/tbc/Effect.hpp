@@ -15,6 +15,7 @@ enum class Status {
   SUCCESS,
   SKIPPED,
   FAILED,
+  STOP,
 };
 
 struct Winners {

@@ -139,6 +139,10 @@ protected:
 
       [[maybe_unused]] auto [status, winners, commands, events] = action.ApplyNext(battle);
 
+      if (status == EffectResult::Status::STOP) {
+        action.Stop();
+      }
+
       // if the effect caused the battle to end, report an interruption immediately
       // battle ending can sometimes still require effects to continue to be applied? TODO: research
       if (winners.winners.size() > 0) {
