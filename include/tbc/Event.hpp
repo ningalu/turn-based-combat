@@ -14,8 +14,8 @@ struct BattleEnd {
 struct TurnsStart {};
 struct TurnsEnd {};
 
-struct ActionStart {};
-struct ActionEnd {};
+struct StaticActionStart {};
+struct StaticActionEnd {};
 } // namespace DefaultEvents
 
 namespace detail {
@@ -34,8 +34,8 @@ struct Event {
     DefaultEvents::BattleEnd,
     DefaultEvents::TurnsStart,
     DefaultEvents::TurnsEnd,
-    DefaultEvents::ActionStart,
-    DefaultEvents::ActionEnd,
+    DefaultEvents::StaticActionStart,
+    DefaultEvents::StaticActionEnd,
     TUserPayloads...>;
 
   using Payload = typename Detail::Payload;

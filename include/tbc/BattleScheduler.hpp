@@ -116,8 +116,6 @@ public:
 
       b.StartTurn();
       b.queued_commands.at(0).static_commands = OrderCommands(b.queued_commands.at(0).static_commands, b);
-      // const auto actions                      = TranslateActions(b.queued_commands.at(0).static_commands, b);
-      // Turn<TBattle, TEvents, TCommand> turn{actions};
       Turn<TBattle, TEvents, TCommand> turn;
       if (i == 0) {
         auto event_action = PostEvent(DefaultEvents::BattleStart{}, b);
@@ -135,12 +133,20 @@ public:
 
 protected:
   [[nodiscard]] bool ApplyActionUntilInterrupted(TAction &action, TTurn &turn, TBattle &battle) {
-    while (!action.Done()) {
+    const auto timeout = 100;
+    for (std::size_t i = 0; i < timeout; i++) {
 
-      [[maybe_unused]] auto [status, winners, commands, events] = action.ApplyNext(battle);
+      const auto result = action.ApplyNext(battle);
+
+      if (!result.has_value()) {
+        // Action ran to completion
+        return false;
+      }
+
+      [[maybe_unused]] auto [status, winners, commands, events] = result.value();
 
       if (status == EffectResult::Status::STOP) {
-        action.Stop();
+        action.Cancel();
       }
 
       // if the effect caused the battle to end, report an interruption immediately
@@ -210,6 +216,14 @@ protected:
         }
       }
       turn.static_actions.erase(turn.static_actions.begin());
+      const auto static_action_end_result = PostEvent<DefaultEvents::StaticActionEnd>({}, battle);
+      if (static_action_end_result.has_value()) {
+        const auto &static_action_end_actions = static_action_end_result.value();
+        if (static_action_end_actions.size() > 0) {
+          turn.AddDynamicActions(static_action_end_actions);
+          return true;
+        }
+      }
     }
 
     if (queued_commands.static_commands.size() > 0) {
