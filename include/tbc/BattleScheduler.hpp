@@ -116,8 +116,6 @@ public:
 
       b.StartTurn();
       b.queued_commands.at(0).static_commands = OrderCommands(b.queued_commands.at(0).static_commands, b);
-      // const auto actions                      = TranslateActions(b.queued_commands.at(0).static_commands, b);
-      // Turn<TBattle, TEvents, TCommand> turn{actions};
       Turn<TBattle, TEvents, TCommand> turn;
       if (i == 0) {
         auto event_action = PostEvent(DefaultEvents::BattleStart{}, b);
@@ -210,6 +208,14 @@ protected:
         }
       }
       turn.static_actions.erase(turn.static_actions.begin());
+      const auto static_action_end_result = PostEvent<DefaultEvents::StaticActionEnd>({}, battle);
+      if (static_action_end_result.has_value()) {
+        const auto &static_action_end_actions = static_action_end_result.value();
+        if (static_action_end_actions.size() > 0) {
+          turn.AddDynamicActions(static_action_end_actions);
+          return true;
+        }
+      }
     }
 
     if (queued_commands.static_commands.size() > 0) {
