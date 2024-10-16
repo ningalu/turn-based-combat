@@ -38,6 +38,7 @@ public:
   Action(const std::vector<Deferred> &d) : Action<TBattle, TEvents, TCommands>(DeferredEffectsImpl(d)) {}
   Action(const ActionImpl &impl) : started_{false}, cancelled_{false}, action_impl_{impl} {}
 
+  // TODO: should this be taking a copy? i only really want the lambda capture to copy this
   [[nodiscard]] static std::function<std::optional<Result>(TBattle &)> DeferredEffectsImpl(std::vector<Deferred> deferred) {
     return [=](TBattle &battle) mutable -> std::optional<Result> {
       std::optional<Result> out;
