@@ -133,12 +133,20 @@ public:
 
 protected:
   [[nodiscard]] bool ApplyActionUntilInterrupted(TAction &action, TTurn &turn, TBattle &battle) {
-    while (!action.Done()) {
+    const auto timeout = 100;
+    for (std::size_t i = 0; i < timeout; i++) {
 
-      [[maybe_unused]] auto [status, winners, commands, events] = action.ApplyNext(battle);
+      const auto result = action.ApplyNext(battle);
+
+      if (!result.has_value()) {
+        // Action ran to completion
+        return false;
+      }
+
+      [[maybe_unused]] auto [status, winners, commands, events] = result.value();
 
       if (status == EffectResult::Status::STOP) {
-        action.Stop();
+        action.Cancel();
       }
 
       // if the effect caused the battle to end, report an interruption immediately
