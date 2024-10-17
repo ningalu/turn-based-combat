@@ -54,7 +54,7 @@ public:
     return RequestCommands(players, nullptr, attempts);
   }
 
-  [[nodiscard]] CommandQueue<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 10) {
+  [[nodiscard]] CommandQueue<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 1) {
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
     for (const auto player : players) {
@@ -67,10 +67,10 @@ public:
           const auto incoming_payloads = comms_.at(player).GetCommands().get();
           payloads                     = (validator ? validator : command_validator_)(player, incoming_payloads, *this);
           if (payloads.has_value()) {
-            std::cout << "Player " << player + 1 << " commands accepted\n";
+            // std::cout << "Player " << player + 1 << " commands accepted\n";
             break;
           }
-          std::cout << "Player " << player + 1 << " commands rejected\n";
+          // std::cout << "Player " << player + 1 << " commands rejected\n";
         }
 
         if (!payloads.has_value()) {
