@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdint>
 #include <future>
+#include <iostream>
 #include <numeric>
 #include <vector>
 
@@ -53,7 +54,7 @@ public:
     return RequestCommands(players, nullptr, attempts);
   }
 
-  [[nodiscard]] CommandQueue<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 10) {
+  [[nodiscard]] CommandQueue<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 1) {
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
     for (const auto player : players) {
@@ -66,8 +67,10 @@ public:
           const auto incoming_payloads = comms_.at(player).GetCommands().get();
           payloads                     = (validator ? validator : command_validator_)(player, incoming_payloads, *this);
           if (payloads.has_value()) {
+            // std::cout << "Player " << player + 1 << " commands accepted\n";
             break;
           }
+          // std::cout << "Player " << player + 1 << " commands rejected\n";
         }
 
         if (!payloads.has_value()) {
@@ -95,7 +98,7 @@ public:
     while (queued_commands.size() < (turns_ahead + 1)) {
       queued_commands.push_back({});
     }
-
+    std::cout << "Queued " << turns_ahead << " turns ahead\n";
     queued_commands.at(turns_ahead).BufferCommand(c);
   }
 
@@ -110,7 +113,7 @@ public:
     if (queued_commands.size() == 0) {
       queued_commands.push_back(turn);
     } else {
-      queued_commands.at(0) = turn;
+      queued_commands.at(0).Merge(turn);
     }
   }
 

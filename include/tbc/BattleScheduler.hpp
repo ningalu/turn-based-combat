@@ -113,7 +113,7 @@ public:
     }();
 
     for (std::size_t i = 0; !b.HasEnded(); i++) {
-
+      std::cout << "Start turn " << i + 1 << "\n";
       b.StartTurn();
       b.queued_commands.at(0).static_commands = OrderCommands(b.queued_commands.at(0).static_commands, b);
       Turn<TBattle, TEvents, TCommand> turn;
