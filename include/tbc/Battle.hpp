@@ -18,6 +18,7 @@ template <typename TUnit, typename TState, typename TCommand>
 class Battle : public TState {
   using TCommandPayload   = typename TCommand::Payload;
   using TCommandValidator = std::function<std::optional<std::vector<TCommandPayload>>(std::size_t, std::vector<TCommandPayload>, const Battle<TUnit, TState, TCommand> &)>;
+  using TCommandOrderer   = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const Battle<TUnit, TState, TCommand> &)>;
 
 public:
   Battle(const TState &state_, std::size_t seed, const std::vector<PlayerComms<TCommandPayload>> &comms, const Layout &layout) : TState{state_}, seed_{seed}, comms_{comms}, layout_{layout} {}
@@ -48,6 +49,14 @@ public:
     }
     // TODO: deal with buffered commands somehow
     return commands;
+  }
+
+  void SetCommandOrderer(const TCommandOrderer &orderer) {
+    command_orderer_ = orderer;
+  }
+
+  [[nodiscard]] std::vector<TCommand> OrderCommands(const std::vector<TCommand> &commands) const {
+    return command_orderer_ ? command_orderer_(commands, *this) : commands;
   }
 
   [[nodiscard]] std::vector<TCommand> RequestCommands(const std::vector<std::size_t> &players, std::size_t attempts) {
@@ -143,6 +152,7 @@ protected:
   std::optional<std::vector<std::size_t>> winner_indices_;
 
   TCommandValidator command_validator_;
+  TCommandOrderer command_orderer_;
 };
 } // namespace ngl::tbc
 

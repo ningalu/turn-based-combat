@@ -19,11 +19,11 @@
 namespace ngl::tbc {
 template <typename TUnit, typename TState, typename TCommand, typename TEvents>
 class BattleScheduler {
-  using TCommandPayload  = typename TCommand::Payload;
-  using TBattle          = Battle<TUnit, TState, TCommand>;
-  using TAction          = Action<TBattle, TEvents, TCommand>;
-  using TTurn            = Turn<TBattle, TEvents, TCommand>;
-  using CommandOrderer   = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
+  using TCommandPayload = typename TCommand::Payload;
+  using TBattle         = Battle<TUnit, TState, TCommand>;
+  using TAction         = Action<TBattle, TEvents, TCommand>;
+  using TTurn           = Turn<TBattle, TEvents, TCommand>;
+
   using ActionTranslator = std::function<std::vector<TAction>(const std::vector<TCommand> &, const TBattle &)>;
   using BattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
@@ -48,14 +48,6 @@ public:
       return PostEvent<T>(event, b);
     },
                       e.payload);
-  }
-
-  void SetCommandOrderer(const CommandOrderer &orderer) {
-    command_orderer_ = orderer;
-  }
-
-  [[nodiscard]] std::vector<TCommand> OrderCommands(const std::vector<TCommand> &commands, const TBattle &battle) const {
-    return command_orderer_ ? command_orderer_(commands, battle) : commands;
   }
 
   void SetActionTranslator(const ActionTranslator &translator) {
@@ -115,7 +107,7 @@ public:
     for (std::size_t i = 0; !b.HasEnded(); i++) {
       std::cout << "Start turn " << i + 1 << "\n";
       b.StartTurn();
-      b.queued_commands.at(0).static_commands = OrderCommands(b.queued_commands.at(0).static_commands, b);
+      b.queued_commands.at(0).static_commands = b.OrderCommands(b.queued_commands.at(0).static_commands);
       Turn<TBattle, TEvents, TCommand> turn;
       if (i == 0) {
         auto event_action = PostEvent(DefaultEvents::BattleStart{}, b);
@@ -240,7 +232,6 @@ protected:
 
   EventHandler<TBattle, TCommand, TEvents> event_handlers_;
 
-  CommandOrderer command_orderer_;
   ActionTranslator action_translator_;
   BattleEndChecker check_battle_ended_;
 };
