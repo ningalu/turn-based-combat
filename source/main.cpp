@@ -138,48 +138,40 @@ std::function<std::vector<MyCommandPayload>()> GetComms(int n) {
 };
 
 auto default_validator  = [](std::size_t, const std::vector<MyCommandPayload> &payload, const MyBattle &) { return payload; };
-auto default_translator = [](const std::vector<MyCommands> &commands, const MyBattle &) {
-  auto out = std::vector<MyAction>{};
-  for (const auto &c : commands) {
-    int move = std::visit([](auto &&p) {
-      using T = std::decay_t<decltype(p)>;
-      if constexpr (std::is_same_v<T, RockCommand>) {
-        return 0;
-      } else if constexpr (std::is_same_v<T, PaperCommand>) {
-        return 1;
-      } else if constexpr (std::is_same_v<T, ScissorsCommand>) {
-        return 2;
-      } else {
-        throw std::logic_error{"invalid move"};
-      }
-    },
-                          c.payload);
+auto default_translator = [](const MyCommands &command, const MyBattle &) {
+  int move = std::visit([](auto &&p) {
+    using T = std::decay_t<decltype(p)>;
+    if constexpr (std::is_same_v<T, RockCommand>) {
+      return 0;
+    } else if constexpr (std::is_same_v<T, PaperCommand>) {
+      return 1;
+    } else if constexpr (std::is_same_v<T, ScissorsCommand>) {
+      return 2;
+    } else {
+      throw std::logic_error{"invalid move"};
+    }
+  },
+                        command.payload);
 
-    out.push_back(GetAction({c.player, 0}, {}, move));
-  }
-  return out;
+  return GetAction({command.player, 0}, {}, move);
 };
 
-auto int_event_translator = [](const std::vector<MyCommands> &commands, const MyBattle &) {
-  auto out = std::vector<MyAction>{};
-  for (const auto &c : commands) {
-    int move = std::visit([](auto &&p) {
-      using T = std::decay_t<decltype(p)>;
-      if constexpr (std::is_same_v<T, RockCommand>) {
-        return 0;
-      } else if constexpr (std::is_same_v<T, PaperCommand>) {
-        return 1;
-      } else if constexpr (std::is_same_v<T, ScissorsCommand>) {
-        return 2;
-      } else {
-        throw std::logic_error{"invalid move"};
-      }
-    },
-                          c.payload);
+auto int_event_translator = [](const MyCommands &command, const MyBattle &) {
+  int move = std::visit([](auto &&p) {
+    using T = std::decay_t<decltype(p)>;
+    if constexpr (std::is_same_v<T, RockCommand>) {
+      return 0;
+    } else if constexpr (std::is_same_v<T, PaperCommand>) {
+      return 1;
+    } else if constexpr (std::is_same_v<T, ScissorsCommand>) {
+      return 2;
+    } else {
+      throw std::logic_error{"invalid move"};
+    }
+  },
+                        command.payload);
 
-    out.push_back(GetActionWithIntEffect({c.player, 0}, {}, move));
-  }
-  return out;
+  return GetActionWithIntEffect({command.player, 0}, {}, move);
 };
 
 std::vector<MyAction> default_turnend(ngl::tbc::DefaultEvents::TurnsEnd, MyBattle &) {

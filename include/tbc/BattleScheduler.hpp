@@ -24,8 +24,8 @@ class BattleScheduler {
   using TAction         = Action<TBattle, TEvents, TCommand>;
   using TTurn           = Turn<TBattle, TEvents, TCommand>;
 
-  using ActionTranslator = std::function<std::vector<TAction>(const std::vector<TCommand> &, const TBattle &)>;
-  using BattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
+  using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;
+  using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
 public:
   template <typename TSpecificEvent>
@@ -50,16 +50,25 @@ public:
                       e.payload);
   }
 
-  void SetActionTranslator(const ActionTranslator &translator) {
+  void SetActionTranslator(const TActionTranslator &translator) {
     action_translator_ = translator;
+  }
+
+  [[nodiscard]] TAction TranslateAction(const TCommand &command, const TBattle &battle) const {
+    assert(action_translator_);
+    return action_translator_(command, battle);
   }
 
   [[nodiscard]] std::vector<TAction> TranslateActions(const std::vector<TCommand> &commands, const TBattle &battle) const {
     assert(action_translator_);
-    return action_translator_(commands, battle);
+    std::vector<TAction> out;
+    for (const auto &command : commands) {
+      out.push_back(action_translator_(command, battle));
+    }
+    return out;
   }
 
-  void SetBattleEndedChecker(const BattleEndChecker &checker) {
+  void SetBattleEndedChecker(const TBattleEndChecker &checker) {
     check_battle_ended_ = checker;
   }
 
@@ -188,8 +197,8 @@ protected:
       const auto queued_dynamic_command = queued_commands.dynamic_commands.at(0);
       queued_commands.dynamic_commands.erase(queued_commands.dynamic_commands.begin());
 
-      auto queued_dynamic_action = TranslateActions({queued_dynamic_command}, battle);
-      turn.AddDynamicActions(queued_dynamic_action);
+      auto queued_dynamic_action = TranslateAction(queued_dynamic_command, battle);
+      turn.AddDynamicAction(queued_dynamic_action);
       return true;
     }
 
@@ -222,8 +231,8 @@ protected:
       const auto queued_static_command = queued_commands.static_commands.at(0);
       queued_commands.static_commands.erase(queued_commands.static_commands.begin());
 
-      auto queued_static_action = TranslateActions({queued_static_command}, battle);
-      turn.AddStaticActions(queued_static_action);
+      auto queued_static_action = TranslateAction(queued_static_command, battle);
+      turn.AddStaticAction(queued_static_action);
       return true;
     }
 
@@ -232,8 +241,8 @@ protected:
 
   EventHandler<TBattle, TCommand, TEvents> event_handlers_;
 
-  ActionTranslator action_translator_;
-  BattleEndChecker check_battle_ended_;
+  TActionTranslator action_translator_;
+  TBattleEndChecker check_battle_ended_;
 };
 } // namespace ngl::tbc
 
