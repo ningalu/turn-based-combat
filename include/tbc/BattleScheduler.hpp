@@ -197,8 +197,8 @@ protected:
       const auto queued_dynamic_command = queued_commands.dynamic_commands.at(0);
       queued_commands.dynamic_commands.erase(queued_commands.dynamic_commands.begin());
 
-      auto queued_dynamic_action = TranslateActions({queued_dynamic_command}, battle);
-      turn.AddDynamicActions(queued_dynamic_action);
+      auto queued_dynamic_action = TranslateAction(queued_dynamic_command, battle);
+      turn.AddDynamicAction(queued_dynamic_action);
       return true;
     }
 
@@ -231,8 +231,8 @@ protected:
       const auto queued_static_command = queued_commands.static_commands.at(0);
       queued_commands.static_commands.erase(queued_commands.static_commands.begin());
 
-      auto queued_static_action = TranslateActions({queued_static_command}, battle);
-      turn.AddStaticActions(queued_static_action);
+      auto queued_static_action = TranslateAction(queued_static_command, battle);
+      turn.AddStaticAction(queued_static_action);
       return true;
     }
 
