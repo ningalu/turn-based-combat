@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.14)
 include(cmake/prelude.cmake)
 
 project(
-    ningalu-turn-based-combat-2
+    ngl-tbc-2
     VERSION 0.2.0
     DESCRIPTION "Short description"
     HOMEPAGE_URL "https://example.com/"
@@ -19,17 +19,17 @@ add_subdirectory(source/tbc)
 
 # ---- Declare executable ----
 
-add_executable(ningalu-turn-based-combat-2_exe source/main.cpp)
-add_executable(ningalu-turn-based-combat-2::exe ALIAS ningalu-turn-based-combat-2_exe)
+add_executable(ngl-tbc-2_exe source/main.cpp)
+add_executable(ngl-tbc-2::exe ALIAS ngl-tbc-2_exe)
 
-set_property(TARGET ningalu-turn-based-combat-2_exe PROPERTY OUTPUT_NAME ningalu-turn-based-combat-2)
+set_property(TARGET ngl-tbc-2_exe PROPERTY OUTPUT_NAME ngl-tbc-2)
 
-target_compile_features(ningalu-turn-based-combat-2_exe PRIVATE cxx_std_20)
+target_compile_features(ngl-tbc-2_exe PRIVATE cxx_std_20)
 
-target_link_libraries(ningalu-turn-based-combat-2_exe PRIVATE ningalu-turn-based-combat_lib)
+target_link_libraries(ngl-tbc-2_exe PRIVATE ngl-tbc_lib)
 
 target_include_directories(
-  ningalu-turn-based-combat-2_exe 
+  ngl-tbc-2_exe 
   PUBLIC 
   "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>"
 )
@@ -42,12 +42,12 @@ endif()
 
 # ---- Developer mode ----
 
-if(NOT ningalu-turn-based-combat-2_DEVELOPER_MODE)
+if(NOT ngl-tbc-2_DEVELOPER_MODE)
   return()
 elseif(NOT PROJECT_IS_TOP_LEVEL)
   message(
       AUTHOR_WARNING
-      "Developer mode is intended for developers of ningalu-turn-based-combat-2"
+      "Developer mode is intended for developers of ngl-tbc-2"
   )
 endif()
 

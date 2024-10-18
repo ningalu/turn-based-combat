@@ -1,11 +1,11 @@
 # ---- Developer mode ----
 
 # Developer mode enables targets and code paths in the CMake scripts that are
-# only relevant for the developer(s) of ningalu-turn-based-combat-2
+# only relevant for the developer(s) of ngl-tbc-2
 # Targets necessary to build the project must be provided unconditionally, so
 # consumers can trivially build and package the project
 if(PROJECT_IS_TOP_LEVEL)
-  option(ningalu-turn-based-combat-2_DEVELOPER_MODE "Enable developer mode" OFF)
+  option(ngl-tbc-2_DEVELOPER_MODE "Enable developer mode" OFF)
 endif()
 
 # ---- Warning guard ----
@@ -17,12 +17,12 @@ endif()
 set(warning_guard "")
 if(NOT PROJECT_IS_TOP_LEVEL)
   option(
-      ningalu-turn-based-combat-2_INCLUDES_WITH_SYSTEM
-      "Use SYSTEM modifier for ningalu-turn-based-combat-2's includes, disabling warnings"
+      ngl-tbc-2_INCLUDES_WITH_SYSTEM
+      "Use SYSTEM modifier for ngl-tbc-2's includes, disabling warnings"
       ON
   )
-  mark_as_advanced(ningalu-turn-based-combat-2_INCLUDES_WITH_SYSTEM)
-  if(ningalu-turn-based-combat-2_INCLUDES_WITH_SYSTEM)
+  mark_as_advanced(ngl-tbc-2_INCLUDES_WITH_SYSTEM)
+  if(ngl-tbc-2_INCLUDES_WITH_SYSTEM)
     set(warning_guard SYSTEM)
   endif()
 endif()
