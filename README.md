@@ -1,6 +1,6 @@
-# ningalu-turn-based-combat-2
+# ngl-tbc-2
 
-This is the ningalu-turn-based-combat-2 project.
+This is the ngl-tbc-2 project.
 
 # Building and installing
 

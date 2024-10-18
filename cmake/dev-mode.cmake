@@ -7,10 +7,10 @@ endif()
 
 add_custom_target(
     run-exe
-    COMMAND ningalu-turn-based-combat-2_exe
+    COMMAND ngl-tbc-2_exe
     VERBATIM
 )
-add_dependencies(run-exe ningalu-turn-based-combat-2_exe)
+add_dependencies(run-exe ngl-tbc-2_exe)
 
 option(BUILD_MCSS_DOCS "Build documentation using Doxygen and m.css" OFF)
 if(BUILD_MCSS_DOCS)

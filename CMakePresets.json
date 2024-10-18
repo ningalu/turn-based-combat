@@ -26,7 +26,7 @@
       "hidden": true,
       "inherits": "cmake-pedantic",
       "cacheVariables": {
-        "ningalu-turn-based-combat-2_DEVELOPER_MODE": "ON"
+        "ngl-tbc-2_DEVELOPER_MODE": "ON"
       }
     },
     {
@@ -155,15 +155,34 @@
     },
     {
       "name": "ci-macos",
-      "inherits": ["ci-build", "ci-darwin", "dev-mode", "ci-multi-config", "conan"]
+      "inherits": [
+        "ci-build",
+        "ci-darwin",
+        "dev-mode",
+        "ci-multi-config",
+        "conan"
+      ]
     },
     {
       "name": "ci-ubuntu",
-      "inherits": ["ci-build", "ci-linux", "clang-tidy", "conan", "cppcheck", "dev-mode"]
+      "inherits": [
+        "ci-build",
+        "ci-linux",
+        "clang-tidy",
+        "conan",
+        "cppcheck",
+        "dev-mode"
+      ]
     },
     {
       "name": "ci-windows",
-      "inherits": ["ci-build", "ci-win64", "dev-mode", "ci-multi-config", "conan"]
+      "inherits": [
+        "ci-build",
+        "ci-win64",
+        "dev-mode",
+        "ci-multi-config",
+        "conan"
+      ]
     }
   ]
 }
