@@ -6,11 +6,12 @@
 #include <utility>
 #include <variant>
 
-#include "tbc/util.h"
+#include "util/util.h"
 
 #include "tbc/Battle.hpp"
 #include "tbc/BattleScheduler.hpp"
 #include "tbc/Command.hpp"
+#include "tbc/CommandPayloadSet.hpp"
 #include "tbc/DeferredEffect.hpp"
 #include "tbc/DeferredUserEffect.hpp"
 #include "tbc/Effect.hpp"

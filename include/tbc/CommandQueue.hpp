@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 
-#include "util.h"
+#include "util/util.h"
 
 namespace ngl::tbc {
 template <typename TCommand>
