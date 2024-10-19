@@ -3,12 +3,14 @@
 
 #include <variant>
 
+#include "util/tmp.hpp"
 namespace ngl::tbc {
-template <typename... Ts>
+template <typename... TTypes>
 struct Command {
-  using Payload = std::variant<Ts...>;
+  using Payload        = std::variant<TTypes...>;
+  using PayloadTypeSet = tmp::typeset<TTypes...>;
 
-  Command(std::size_t player_, std::variant<Ts...> p) : player{player_}, payload{p} {}
+  Command(std::size_t player_, std::variant<TTypes...> p) : player{player_}, payload{p} {}
   std::size_t player;
   Payload payload;
 };

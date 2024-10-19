@@ -1,6 +1,10 @@
 #ifndef NGL_UTIL_TMP_HPP
 #define NGL_UTIL_TMP_HPP
 
+#include <optional>
+#include <tuple>
+#include <type_traits>
+
 namespace ngl::tmp {
 
 // is_unique
@@ -40,13 +44,13 @@ static_assert(is_unique_v<int, double>);
 static_assert(!is_unique_v<int, int>);
 } // namespace
 
-template <typename T, typename... Ts>
+template <typename T, typename... TTypes>
 struct is_present {
-  static constexpr bool value{(std::is_same_v<T, Ts> || ...)};
+  static constexpr bool value{(std::is_same_v<T, TTypes> || ...)};
 };
 
-template <typename T, typename... Ts>
-constexpr bool is_present_v = is_present<T, Ts...>::value;
+template <typename T, typename... TTypes>
+constexpr bool is_present_v = is_present<T, TTypes...>::value;
 
 namespace {
 static_assert(is_present_v<int, int, double>);
@@ -54,28 +58,60 @@ static_assert(!is_present_v<int, char, double>);
 } // namespace
 
 // typeset
-template <typename... Ts>
-  requires(is_unique<Ts...>)
+template <typename... TTypes>
+  requires(is_unique_v<TTypes...>)
 class typeset {
 
-  template <typename T>
+  template <typename TType>
+  using key = std::optional<std::decay_t<TType> *>;
+
+public:
+  // typeset() = default;
+
+  // template <typename TType>
+  // typeset() {
+  //   static_assert(is_present_v<TType, TTypes...>);
+  //   insert<TType>();
+  // }
+
+  // template <typename... TInitTypes>
+  // typeset() {
+  //   static_assert(is_unique_v<TInitTypes...>);
+  //   static_assert((is_present_v<TTypes, TTypes...> || ...));
+  //   insert(TInitTypes...);
+  // }
+
+  template <typename TInsertType>
   void insert() {
-    std::get<T>(storage_) = nullptr;
+    static_assert(is_present_v<TInsertType, TTypes...>);
+    std::get<key<TInsertType>>(storage_) = nullptr;
   }
 
-  template <typename T>
+  // template <typename... TInsertTypes>
+  // void insert() {
+  //   static_assert(is_unique_v<TInsertTypes...>);
+  //   (insert<TInsertTypes>(), ...);
+  // }
+
+  template <typename TEraseType>
   void erase() {
-    std::get<T>(storage_) = std::nullopt;
+    static_assert(is_present_v<TEraseType, TTypes...>);
+    std::get<key<TEraseType>>(storage_) = std::nullopt;
   }
+
+  // template <typename... TEraseTypes>
+  // void erase() {
+  //   static_assert(is_unique_v<TEraseTypes...>);
+  //   (erase(TEraseTypes), ...);
+  // }
 
   template <typename T>
   [[nodiscard]] bool contains() const {
-    return std::get<T>(storage_) == nullptr;
+    return std::get<key<T>>(storage_) == nullptr;
   }
 
-public:
 protected:
-  std::tuple<std::optional<Ts *>...> storage_;
+  std::tuple<key<TTypes>...> storage_;
 };
 
 } // namespace ngl::tmp

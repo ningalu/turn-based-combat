@@ -14,9 +14,10 @@
 namespace ngl::tbc {
 template <typename TUnit, typename TBattleState, typename TCommands, typename TEvents>
 struct BattleTypes {
-  using Commands       = TCommands;
-  using CommandPayload = TCommands::Payload;
-  using PlayerComms    = PlayerComms<CommandPayload>;
+  using Commands              = TCommands;
+  using CommandPayload        = TCommands::Payload;
+  using CommandPayloadTypeSet = TCommands::PayloadTypeSet;
+  using PlayerComms           = PlayerComms<CommandPayload>;
 
   using Events       = TEvents;
   using EventPayload = Events::Payload;

@@ -190,6 +190,14 @@ void test_battle_end();
 void test_user_event();
 
 auto main() -> int {
+  using mytypeset = ngl::tmp::typeset<int, double, char>;
+  auto types1     = mytypeset{};
+  assert(!types1.contains<int>());
+  types1.insert<int>();
+  assert(types1.contains<int>());
+  types1.erase<int>();
+  assert(!types1.contains<int>());
+
   std::cout << "Test battle end\n";
   test_battle_end();
   std::cout << "\n\nTest user event\n";
