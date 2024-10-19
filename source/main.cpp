@@ -140,7 +140,11 @@ std::function<std::vector<MyCommandPayload>(const MyCmdSet &)> GetComms(int n) {
   };
 };
 
-auto default_validator  = [](std::size_t, const std::vector<MyCommandPayload> &payload, const MyBattle &) { return payload; };
+auto default_validator = [](std::size_t, const std::vector<MyCommandPayload> &payload, const MyBattle &) -> std::pair<std::optional<std::vector<MyCommandPayload>>, MyCommandResult> {
+  const std::optional<std::vector<MyCommandPayload>> out{payload};
+  return std::pair{out, MyCommandResult{true}};
+};
+
 auto default_translator = [](const MyCommands &command, const MyBattle &) {
   int move = std::visit([](auto &&p) {
     using T = std::decay_t<decltype(p)>;

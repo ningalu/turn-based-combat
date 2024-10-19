@@ -21,7 +21,7 @@ class Battle : public TState {
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
 
   using TCommandPayload          = typename TCommand::Payload;
-  using TCommandValidator        = std::function<std::optional<std::vector<TCommandPayload>>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
+  using TCommandValidator        = std::function<std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
   using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
@@ -49,12 +49,9 @@ public:
   }
 
   // TODO: is there actually any meaningful domain-agnostic validation that can be done here?
-  [[nodiscard]] std::optional<std::vector<TCommandPayload>> ValidateCommands(std::size_t authority, const std::vector<TCommandPayload> &commands) const {
-    if (command_validator_) {
-      return command_validator_(authority, commands, *this);
-    }
-    // TODO: deal with buffered commands somehow
-    return commands;
+  [[nodiscard]] std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult> ValidateCommands(std::size_t authority, const std::vector<TCommandPayload> &commands) const {
+    assert(command_validator_);
+    return command_validator_(authority, commands, *this);
   }
 
   void SetCommandOrderer(const TCommandOrderer &orderer) {
@@ -93,13 +90,20 @@ public:
       // Async poll each player for static commands, rejecting and repolling if any are invalid
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
         std::optional<std::vector<TCommandPayload>> payloads;
+        TCommandResult result;
+
         for (std::size_t i = 0; i < attempts; i++) {
           const auto incoming_payloads = comms_.at(player).RequestCommands(valid_commands).get();
           if (validator) {
-            payloads = validator(player, incoming_payloads, *this);
+            auto validation_result = validator(player, incoming_payloads, *this);
+            payloads               = validation_result.first;
+            result                 = validation_result.second;
           } else {
-            payloads = ValidateCommands(player, incoming_payloads);
+            auto validation_result = ValidateCommands(player, incoming_payloads);
+            payloads               = validation_result.first;
+            result                 = validation_result.second;
           }
+          comms_.at(player).RequestCommandsResponse(result);
           if (payloads.has_value()) {
             break;
           }
