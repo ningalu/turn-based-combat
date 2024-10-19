@@ -14,6 +14,7 @@ namespace ngl::tbc {
   __builtin_unreachable();
 #endif
 }
+
 } // namespace ngl::tbc
 
 #endif

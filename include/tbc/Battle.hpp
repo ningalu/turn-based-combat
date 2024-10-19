@@ -16,13 +16,19 @@
 namespace ngl::tbc {
 template <typename TUnit, typename TState, typename TCommand>
 class Battle : public TState {
-  using TCommandPayload   = typename TCommand::Payload;
-  using TCommandValidator = std::function<std::optional<std::vector<TCommandPayload>>(std::size_t, std::vector<TCommandPayload>, const Battle<TUnit, TState, TCommand> &)>;
-  using TCommandOrderer   = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const Battle<TUnit, TState, TCommand> &)>;
+  using TBattle                = Battle<TUnit, TState, TCommand>;
+  using TPlayerComms           = PlayerComms<TCommand>;
+  using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
+
+  using TCommandPayload          = typename TCommand::Payload;
+  using TCommandValidator        = std::function<std::optional<std::vector<TCommandPayload>>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
+  using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
+  using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
 public:
-  Battle(const TState &state_, std::size_t seed, const std::vector<PlayerComms<TCommandPayload>> &comms, const Layout &layout) : TState{state_}, seed_{seed}, comms_{comms}, layout_{layout} {}
-  Battle(std::size_t seed, const std::vector<PlayerComms<TCommandPayload>> &comms, const Layout &layout) : Battle{{}, seed, comms, layout} {}
+  Battle(const TState &state_, std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout) : TState{state_},
+                                                                                                                 seed_{seed}, comms_{comms}, layout_{layout} {}
+  Battle(std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout) : Battle{{}, seed, comms, layout} {}
 
   std::vector<CommandQueue<TCommand>> queued_commands;
 
@@ -59,27 +65,44 @@ public:
     return command_orderer_ ? command_orderer_(commands, *this) : commands;
   }
 
-  [[nodiscard]] std::vector<TCommand> RequestCommands(const std::vector<std::size_t> &players, std::size_t attempts) {
+  void SetTurnStartCommands(const TTurnStartCommandChecker &checker) {
+    valid_turn_start_commands_ = checker;
+  }
+
+  [[nodiscard]] TCommandPayloadTypeSet GetValidTurnStartCommands(std::size_t player) const {
+    return (valid_turn_start_commands_ ? valid_turn_start_commands_(player, *this) : TCommandPayloadTypeSet{true});
+  }
+
+  [[nodiscard]] std::vector<TCommand> RequestCommands(
+    const std::vector<std::pair<std::size_t, TCommandPayloadTypeSet>> &players,
+    std::size_t attempts
+  ) {
     return RequestCommands(players, nullptr, attempts);
   }
 
-  [[nodiscard]] CommandQueue<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 1) {
+  [[nodiscard]] CommandQueue<TCommand> RequestCommands(
+    const std::vector<std::pair<std::size_t, TCommandPayloadTypeSet>> &players,
+    TCommandValidator validator = nullptr,
+    std::size_t attempts        = 1
+  ) {
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
-    for (const auto player : players) {
+    for (const auto [player, valid_commands] : players) {
       assert(comms_.size() > player);
 
       // Async poll each player for static commands, rejecting and repolling if any are invalid
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
         std::optional<std::vector<TCommandPayload>> payloads;
         for (std::size_t i = 0; i < attempts; i++) {
-          const auto incoming_payloads = comms_.at(player).GetCommands().get();
-          payloads                     = (validator ? validator : command_validator_)(player, incoming_payloads, *this);
+          const auto incoming_payloads = comms_.at(player).GetCommands(valid_commands).get();
+          if (validator) {
+            payloads = validator(player, incoming_payloads, *this);
+          } else {
+            payloads = ValidateCommands(player, incoming_payloads);
+          }
           if (payloads.has_value()) {
-            // std::cout << "Player " << player + 1 << " commands accepted\n";
             break;
           }
-          // std::cout << "Player " << player + 1 << " commands rejected\n";
         }
 
         if (!payloads.has_value()) {
@@ -113,8 +136,11 @@ public:
 
   void StartTurn() {
     const auto player_indices = [&, this]() {
-      std::vector<std::size_t> out(PlayerCount());
-      std::iota(out.begin(), out.end(), std::size_t{0});
+      std::vector<std::pair<std::size_t, TCommandPayloadTypeSet>> out(PlayerCount());
+      for (std::size_t i = 0; i < out.size(); i++) {
+        out.at(i).first  = i;
+        out.at(i).second = GetValidTurnStartCommands(i);
+      }
       return out;
     }();
 
@@ -146,13 +172,14 @@ public:
 
 protected:
   std::size_t seed_;
-  std::vector<PlayerComms<TCommandPayload>> comms_;
+  std::vector<TPlayerComms> comms_;
   Layout layout_;
   // TODO: refactor
   std::optional<std::vector<std::size_t>> winner_indices_;
 
   TCommandValidator command_validator_;
   TCommandOrderer command_orderer_;
+  TTurnStartCommandChecker valid_turn_start_commands_;
 };
 } // namespace ngl::tbc
 
