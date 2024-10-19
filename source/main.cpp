@@ -33,6 +33,8 @@ struct ScissorsCommand {};
 using MyCommands       = ngl::tbc::Command<RockCommand, PaperCommand, ScissorsCommand>;
 using MyCommandPayload = MyCommands::Payload;
 
+using MyCommandResult = ngl::tbc::CommandResult<bool>;
+
 struct MyBattleState {
   int p1_state, p2_state;
   bool ended = false;
@@ -40,7 +42,7 @@ struct MyBattleState {
 
 using MyEvents = ngl::tbc::Event<int, double>;
 
-using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, MyCommands, MyEvents>;
+using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, MyCommands, MyCommandResult, MyEvents>;
 
 using MyBattle       = MyBattleTypes::Battle;
 using MyScheduler    = MyBattleTypes::BattleScheduler;

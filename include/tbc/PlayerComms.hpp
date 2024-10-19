@@ -6,7 +6,7 @@
 #include <string>
 
 namespace ngl::tbc {
-template <typename TCommand>
+template <typename TCommand, typename TCommandResult>
 class PlayerComms {
 public:
   using TPayload               = typename TCommand::Payload;
@@ -17,7 +17,7 @@ public:
       : name_{name},
         static_handler_{static_handler} {}
 
-  [[nodiscard]] std::future<std::vector<TPayload>> GetCommands(const TPayloadTypeSet &types) { return std::async(std::launch::async, static_handler_, types); }
+  [[nodiscard]] std::future<std::vector<TPayload>> RequestCommands(const TPayloadTypeSet &types) { return std::async(std::launch::async, static_handler_, types); }
   void SetCommandHandler(TRequestCommandHandler handler) { static_handler_ = handler; }
 
 protected:

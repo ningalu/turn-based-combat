@@ -14,10 +14,10 @@
 #include "tbc/PlayerComms.hpp"
 
 namespace ngl::tbc {
-template <typename TUnit, typename TState, typename TCommand>
+template <typename TUnit, typename TState, typename TCommand, typename TCommandResult>
 class Battle : public TState {
-  using TBattle                = Battle<TUnit, TState, TCommand>;
-  using TPlayerComms           = PlayerComms<TCommand>;
+  using TBattle                = Battle<TUnit, TState, TCommand, TCommandResult>;
+  using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
 
   using TCommandPayload          = typename TCommand::Payload;
@@ -94,7 +94,7 @@ public:
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
         std::optional<std::vector<TCommandPayload>> payloads;
         for (std::size_t i = 0; i < attempts; i++) {
-          const auto incoming_payloads = comms_.at(player).GetCommands(valid_commands).get();
+          const auto incoming_payloads = comms_.at(player).RequestCommands(valid_commands).get();
           if (validator) {
             payloads = validator(player, incoming_payloads, *this);
           } else {
