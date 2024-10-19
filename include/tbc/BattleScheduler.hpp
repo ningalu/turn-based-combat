@@ -17,10 +17,10 @@
 #include "tbc/Turn.hpp"
 
 namespace ngl::tbc {
-template <typename TUnit, typename TState, typename TCommand, typename TEvents>
+template <typename TUnit, typename TState, typename TCommand, typename TCommandResult, typename TEvents>
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
-  using TBattle         = Battle<TUnit, TState, TCommand>;
+  using TBattle         = Battle<TUnit, TState, TCommand, TCommandResult>;
   using TAction         = Action<TBattle, TEvents, TCommand>;
   using TTurn           = Turn<TBattle, TEvents, TCommand>;
 

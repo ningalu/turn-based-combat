@@ -12,18 +12,19 @@
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
-template <typename TUnit, typename TBattleState, typename TCommands, typename TEvents>
+template <typename TUnit, typename TBattleState, typename TCommands, typename TCommandResult, typename TEvents>
 struct BattleTypes {
   using Commands              = TCommands;
+  using CommandResult         = TCommandResult;
   using CommandPayload        = TCommands::Payload;
   using CommandPayloadTypeSet = TCommands::PayloadTypeSet;
-  using PlayerComms           = PlayerComms<Commands>;
+  using PlayerComms           = PlayerComms<Commands, CommandResult>;
 
   using Events       = TEvents;
   using EventPayload = Events::Payload;
 
-  using Battle          = Battle<TUnit, TBattleState, TCommands>;
-  using BattleScheduler = BattleScheduler<TUnit, TBattleState, TCommands, TEvents>;
+  using Battle          = Battle<TUnit, TBattleState, TCommands, TCommandResult>;
+  using BattleScheduler = BattleScheduler<TUnit, TBattleState, TCommands, CommandResult, TEvents>;
 
   using EventHandler = EventHandler<Battle, TCommands, TEvents>;
 
