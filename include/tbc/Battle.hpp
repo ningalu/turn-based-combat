@@ -20,9 +20,12 @@ class Battle : public TState {
   using TCommandValidator = std::function<std::optional<std::vector<TCommandPayload>>(std::size_t, std::vector<TCommandPayload>, const Battle<TUnit, TState, TCommand> &)>;
   using TCommandOrderer   = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const Battle<TUnit, TState, TCommand> &)>;
 
+  using TPlayerComms           = PlayerComms<TCommand>;
+  using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
+
 public:
-  Battle(const TState &state_, std::size_t seed, const std::vector<PlayerComms<TCommandPayload>> &comms, const Layout &layout) : TState{state_}, seed_{seed}, comms_{comms}, layout_{layout} {}
-  Battle(std::size_t seed, const std::vector<PlayerComms<TCommandPayload>> &comms, const Layout &layout) : Battle{{}, seed, comms, layout} {}
+  Battle(const TState &state_, std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout) : TState{state_}, seed_{seed}, comms_{comms}, layout_{layout} {}
+  Battle(std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout) : Battle{{}, seed, comms, layout} {}
 
   std::vector<CommandQueue<TCommand>> queued_commands;
 
@@ -63,7 +66,11 @@ public:
     return RequestCommands(players, nullptr, attempts);
   }
 
-  [[nodiscard]] CommandQueue<TCommand> RequestCommands(const std::vector<std::size_t> &players, TCommandValidator validator = nullptr, std::size_t attempts = 1) {
+  [[nodiscard]] CommandQueue<TCommand> RequestCommands(
+    const std::vector<std::size_t> &players,
+    TCommandValidator validator = nullptr,
+    std::size_t attempts        = 1
+  ) {
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
     for (const auto player : players) {
@@ -73,7 +80,7 @@ public:
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
         std::optional<std::vector<TCommandPayload>> payloads;
         for (std::size_t i = 0; i < attempts; i++) {
-          const auto incoming_payloads = comms_.at(player).GetCommands().get();
+          const auto incoming_payloads = comms_.at(player).GetCommands(TCommandPayloadTypeSet{true}).get();
           payloads                     = (validator ? validator : command_validator_)(player, incoming_payloads, *this);
           if (payloads.has_value()) {
             // std::cout << "Player " << player + 1 << " commands accepted\n";
@@ -146,7 +153,7 @@ public:
 
 protected:
   std::size_t seed_;
-  std::vector<PlayerComms<TCommandPayload>> comms_;
+  std::vector<TPlayerComms> comms_;
   Layout layout_;
   // TODO: refactor
   std::optional<std::vector<std::size_t>> winner_indices_;

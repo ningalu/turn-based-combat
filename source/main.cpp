@@ -52,8 +52,8 @@ using MyUserEffect    = MyBattleTypes::UserEffect;
 using MyDefUserEffect = MyBattleTypes::DeferredUserEffect;
 
 using MyResult = MyBattleTypes::EffectResult;
-
-using MyComms = MyBattleTypes::PlayerComms;
+using MyCmdSet = MyBattleTypes::CommandPayloadTypeSet;
+using MyComms  = MyBattleTypes::PlayerComms;
 
 MyEffect DebugEffect(int n) {
   return {[=](auto &&...) {std::cout << "effect resolution: " << n << "\n"; return MyResult{}; }};
@@ -122,9 +122,9 @@ MyAction GetActionWithIntEffect(ngl::tbc::Slot::Index user, const std::vector<ng
   return MyAction{std::vector<MyDefUserEffect>{e}};
 }
 
-std::function<std::vector<MyCommandPayload>()> GetComms(int n) {
+std::function<std::vector<MyCommandPayload>(const MyCmdSet &)> GetComms(int n) {
   assert(n < 3);
-  return [=]() {
+  return [=](const MyCmdSet &) -> std::vector<MyCommandPayload> {
     switch (n) {
     case 0:
       return std::vector<MyCommandPayload>({MyCommandPayload{RockCommand{}}});
@@ -203,7 +203,7 @@ auto main() -> int {
   std::cout << "\n\nTest user event\n";
   test_user_event();
 
-  auto input_comms = [&]() {
+  auto input_comms = [&](const MyCmdSet &) {
     std::set<std::string> valid{"R", "P", "S"};
     std::cout << "Play R | P | S\n";
     std::string in;

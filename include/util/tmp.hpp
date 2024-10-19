@@ -66,7 +66,12 @@ class typeset {
   using key = std::optional<std::decay_t<TType> *>;
 
 public:
-  // typeset() = default;
+  typeset() = default;
+  typeset(bool on) {
+    if (on) {
+      insert<TTypes...>();
+    }
+  }
 
   // template <typename TType>
   // typeset() {
@@ -87,11 +92,12 @@ public:
     std::get<key<TInsertType>>(storage_) = nullptr;
   }
 
-  // template <typename... TInsertTypes>
-  // void insert() {
-  //   static_assert(is_unique_v<TInsertTypes...>);
-  //   (insert<TInsertTypes>(), ...);
-  // }
+  template <typename... TInsertTypes>
+    requires(sizeof...(TInsertTypes) > 1)
+  void insert() {
+    static_assert(is_unique_v<TInsertTypes...>);
+    (insert<TInsertTypes>(), ...);
+  }
 
   template <typename TEraseType>
   void erase() {
@@ -99,11 +105,12 @@ public:
     std::get<key<TEraseType>>(storage_) = std::nullopt;
   }
 
-  // template <typename... TEraseTypes>
-  // void erase() {
-  //   static_assert(is_unique_v<TEraseTypes...>);
-  //   (erase(TEraseTypes), ...);
-  // }
+  template <typename... TEraseTypes>
+    requires(sizeof...(TEraseTypes) > 1)
+  void erase() {
+    static_assert(is_unique_v<TEraseTypes...>);
+    (erase(TEraseTypes), ...);
+  }
 
   template <typename T>
   [[nodiscard]] bool contains() const {
