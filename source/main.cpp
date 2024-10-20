@@ -44,30 +44,34 @@ using MyEvents = ngl::tbc::Event<int, double>;
 
 using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, MyCommands, MyCommandResult, MyEvents>;
 
-using MyBattle       = MyBattleTypes::Battle;
-using MyScheduler    = MyBattleTypes::BattleScheduler;
-using MyEventHandler = MyBattleTypes::EventHandler;
+using MyBattle       = MyBattleTypes::TBattle;
+using MyScheduler    = MyBattleTypes::TBattleScheduler;
+using MyEventHandler = MyBattleTypes::TEventHandler;
 
-using MyEffect        = MyBattleTypes::Effect;
-using MyDefEffect     = MyBattleTypes::DeferredEffect;
-using MyUserEffect    = MyBattleTypes::UserEffect;
-using MyDefUserEffect = MyBattleTypes::DeferredUserEffect;
+using MyEffect        = MyBattleTypes::TEffect;
+using MyDefEffect     = MyBattleTypes::TDeferredEffect;
+using MyUserEffect    = MyBattleTypes::TUserEffect;
+using MyDefUserEffect = MyBattleTypes::TDeferredUserEffect;
 
-using MyResult = MyBattleTypes::EffectResult;
-using MyCmdSet = MyBattleTypes::CommandPayloadTypeSet;
-using MyComms  = MyBattleTypes::PlayerComms;
+using MyResult = MyBattleTypes::TEffectResult;
+using MyCmdSet = MyBattleTypes::TCommandPayloadTypeSet;
+using MyComms  = MyBattleTypes::TPlayerComms;
 
 MyEffect DebugEffect(int n) {
-  return {[=](auto &&...) {std::cout << "effect resolution: " << n << "\n"; return MyResult{}; }};
+  return MyEffect{[=]([[maybe_unused]] auto &&...whatever) {std::cout << "effect resolution: " << n << "\n"; return MyResult{}; }};
 }
 
-const MyEffect end_battle_effect{
-  [](MyBattle &b, const std::vector<ngl::tbc::Target> &) { std::cout << "debug effect\n"; b.EndBattle({0}); return MyResult{}; }
-};
+MyEffect end_battle_effect() {
+  return MyEffect{[](MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &t) {
+    std::cout << "debug effect\n";
+    b.EndBattle({0});
+    return MyResult{};
+  }};
+}
 
-const MyEffect resolve_rps_effect{
-  [](MyBattle &b, const std::vector<ngl::tbc::Target> &) {
-    int win_table[3][3] = {{0, -1, 1}, {1, 0, -1}, {-1, 1, 0}};
+MyEffect resolve_rps_effect() {
+  return MyEffect{[](MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
+    int win_table[3][3] = {{0, -1, 1}, {1, 0, -1}, {-1, 1, 0}}; // NOLINT TODO: find a way to turn off warnings for the executable project
 
     const auto outcome = win_table[b.p1_state][b.p2_state];
     if (outcome == 1) {
@@ -76,11 +80,11 @@ const MyEffect resolve_rps_effect{
       b.EndBattle({1});
     }
 
-    return MyResult{}; }
-};
+    return MyResult{}; }};
+}
 
 MyUserEffect GetEffect(int state) {
-  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) {
+  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
     switch (u.side) {
       case 0: b.p1_state = state; break;
       case 1: b.p2_state = state; break;
@@ -91,7 +95,7 @@ MyUserEffect GetEffect(int state) {
 }
 
 MyUserEffect GetEffectWithIntEvent(int state) {
-  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, const std::vector<ngl::tbc::Target> &) {
+  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
     switch (u.side) {
       case 0: b.p1_state = state; break;
       case 1: b.p2_state = state; break;
@@ -105,7 +109,7 @@ MyUserEffect GetEffectWithIntEvent(int state) {
     return out; }};
 }
 
-using MyAction = MyBattleTypes::Action;
+using MyAction = MyBattleTypes::TAction;
 MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Target> &targets, int state) {
   if (state > 2) {
     throw std::logic_error{"invalid state"};
@@ -126,7 +130,7 @@ MyAction GetActionWithIntEffect(ngl::tbc::Slot::Index user, const std::vector<ng
 
 std::function<std::vector<MyCommandPayload>(const MyCmdSet &)> GetComms(int n) {
   assert(n < 3);
-  return [=](const MyCmdSet &) -> std::vector<MyCommandPayload> {
+  return [=]([[maybe_unused]] const MyCmdSet &unused) -> std::vector<MyCommandPayload> {
     switch (n) {
     case 0:
       return std::vector<MyCommandPayload>({MyCommandPayload{RockCommand{}}});
@@ -138,14 +142,14 @@ std::function<std::vector<MyCommandPayload>(const MyCmdSet &)> GetComms(int n) {
       ngl::tbc::unreachable();
     }
   };
-};
+}
 
-auto default_validator = [](std::size_t, const std::vector<MyCommandPayload> &payload, const MyBattle &) -> std::pair<std::optional<std::vector<MyCommandPayload>>, MyCommandResult> {
+auto default_validator = []([[maybe_unused]] std::size_t unused1, const std::vector<MyCommandPayload> &payload, [[maybe_unused]] const MyBattle &unused2) -> std::pair<std::optional<std::vector<MyCommandPayload>>, MyCommandResult> {
   const std::optional<std::vector<MyCommandPayload>> out{payload};
   return std::pair{out, MyCommandResult{true}};
 };
 
-auto default_translator = [](const MyCommands &command, const MyBattle &) {
+auto default_translator = [](const MyCommands &command, [[maybe_unused]] const MyBattle &unused) {
   int move = std::visit([](auto &&p) {
     using T = std::decay_t<decltype(p)>;
     if constexpr (std::is_same_v<T, RockCommand>) {
@@ -163,7 +167,7 @@ auto default_translator = [](const MyCommands &command, const MyBattle &) {
   return GetAction({command.player, 0}, {}, move);
 };
 
-auto int_event_translator = [](const MyCommands &command, const MyBattle &) {
+auto int_event_translator = [](const MyCommands &command, [[maybe_unused]] const MyBattle &unused) {
   int move = std::visit([](auto &&p) {
     using T = std::decay_t<decltype(p)>;
     if constexpr (std::is_same_v<T, RockCommand>) {
@@ -181,67 +185,81 @@ auto int_event_translator = [](const MyCommands &command, const MyBattle &) {
   return GetActionWithIntEffect({command.player, 0}, {}, move);
 };
 
-std::vector<MyAction> default_turnend(ngl::tbc::DefaultEvents::TurnsEnd, MyBattle &) {
-  return {MyAction{std::vector<MyDefEffect>{MyDefEffect{resolve_rps_effect, {}}}}};
+std::vector<MyAction> default_turnend([[maybe_unused]] ngl::tbc::DefaultEvents::TurnsEnd unused1, [[maybe_unused]] const MyBattle &unused2) {
+  return {MyAction{std::vector<MyDefEffect>{MyDefEffect{resolve_rps_effect(), {}}}}};
 }
 
-std::vector<MyAction> default_intevent(int n, MyBattle &) {
+std::vector<MyAction> default_intevent(int n, [[maybe_unused]] const MyBattle &unused) {
   std::cout << "int event received: " << n << "\n";
   return {MyAction{std::vector<MyDefEffect>{MyDefEffect{{DebugEffect(n)}, {}}}}};
 }
 
-auto default_layout = ngl::tbc::Layout{{{{0}}, {{1}}}};
-
 void test_battle_end();
 void test_user_event();
 
+ngl::tbc::Layout default_layout() {
+  return ngl::tbc::Layout{std::vector<ngl::tbc::Side>{
+    ngl::tbc::Side{std::vector<ngl::tbc::Slot>{ngl::tbc::Slot{0}}},
+    ngl::tbc::Side{std::vector<ngl::tbc::Slot>{ngl::tbc::Slot{1}}}
+  }};
+}
+
 auto main() -> int {
-  using mytypeset = ngl::tmp::typeset<int, double, char>;
-  auto types1     = mytypeset{};
-  assert(!types1.contains<int>());
-  types1.insert<int>();
-  assert(types1.contains<int>());
-  types1.erase<int>();
-  assert(!types1.contains<int>());
+  try {
 
-  std::cout << "Test battle end\n";
-  test_battle_end();
-  std::cout << "\n\nTest user event\n";
-  test_user_event();
+    using mytypeset = ngl::tmp::typeset<int, double, char>;
+    auto types1     = mytypeset{};
+    assert(!types1.contains<int>());
+    types1.insert<int>();
+    assert(types1.contains<int>());
+    types1.erase<int>();
+    assert(!types1.contains<int>());
 
-  auto input_comms = [&](const MyCmdSet &) {
-    std::set<std::string> valid{"R", "P", "S"};
-    std::cout << "Play R | P | S\n";
-    std::string in;
-    while (!valid.contains(in)) {
-      std::cin >> in;
-    }
-    if (in == "R") {
-      return std::vector<MyCommandPayload>({MyCommandPayload{RockCommand{}}});
-    } else if (in == "P") {
-      return std::vector<MyCommandPayload>({MyCommandPayload{PaperCommand{}}});
-    } else {
-      return std::vector<MyCommandPayload>({MyCommandPayload{ScissorsCommand{}}});
-    }
-  };
+    std::cout << "Test battle end\n";
+    test_battle_end();
+    std::cout << "\n\nTest user event\n";
+    test_user_event();
 
-  auto p1 = MyComms{"Player 1", input_comms};
-  auto p2 = MyComms{"Player 2", GetComms(2)};
+    auto input_comms = [&]([[maybe_unused]] const MyCmdSet &unused) {
+      std::set<std::string> valid{"R", "P", "S"};
+      std::cout << "Play R | P | S\n";
+      std::string in;
+      while (!valid.contains(in)) {
+        std::cin >> in;
+      }
+      if (in == "R") {
+        return std::vector<MyCommandPayload>({MyCommandPayload{RockCommand{}}});
+      }
+      if (in == "P") {
+        return std::vector<MyCommandPayload>({MyCommandPayload{PaperCommand{}}});
+      }
+      if (in == "S") {
+        return std::vector<MyCommandPayload>({MyCommandPayload{ScissorsCommand{}}});
+      }
+      throw std::logic_error{"whatever"};
+    };
 
-  std::vector<MyComms> players({p1, p2});
+    auto p1 = MyComms{"Player 1", input_comms};
+    auto p2 = MyComms{"Player 2", GetComms(2)};
 
-  auto b = MyBattle{0, players, default_layout};
-  b.SetCommandValidator(default_validator);
+    std::vector<MyComms> players({p1, p2});
 
-  MyScheduler bs;
-  bs.SetActionTranslator(default_translator);
-  bs.SetBattleEndedChecker([](auto &&) { return std::nullopt; });
-  bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+    auto b = MyBattle{0, players, default_layout()};
+    b.SetCommandValidator(default_validator);
 
-  auto winners = bs.RunBattle(b);
-  std::cout << "Winner: Player " << winners.at(0) + 1 << "\n";
+    MyScheduler bs;
+    bs.SetActionTranslator(default_translator);
+    bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
+    bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
 
-  return 0;
+    auto winners = bs.RunBattle(b);
+    std::cout << "Winner: Player " << winners.at(0) + 1 << "\n";
+
+    return 0;
+  } catch (const std::exception &e) {
+    std::cout << "exception thrown: " << e.what() << "\n";
+    return 1;
+  }
 }
 
 void test_battle_end() {
@@ -251,12 +269,12 @@ void test_battle_end() {
 
   std::vector<MyComms> players({p1, p2});
 
-  auto b = MyBattle{0, players, default_layout};
+  auto b = MyBattle{0, players, default_layout()};
   b.SetCommandValidator(default_validator);
 
   MyScheduler bs;
   bs.SetActionTranslator(default_translator);
-  bs.SetBattleEndedChecker([](auto &&) { return std::nullopt; });
+  bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
   bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
 
   auto winners = bs.RunBattle(b);
@@ -271,12 +289,12 @@ void test_user_event() {
 
   std::vector<MyComms> players({p1, p2});
 
-  auto b = MyBattle{0, players, default_layout};
+  auto b = MyBattle{0, players, default_layout()};
   b.SetCommandValidator(default_validator);
 
   MyScheduler bs;
   bs.SetActionTranslator(int_event_translator);
-  bs.SetBattleEndedChecker([](auto &&) { return std::nullopt; });
+  bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
   bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
   bs.SetHandler<int>(default_intevent);
 

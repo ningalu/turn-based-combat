@@ -9,7 +9,7 @@
 namespace ngl::tbc {
 class Side {
 public:
-  Side(std::vector<Slot> slots);
+  explicit Side(std::vector<Slot> slots);
 
   [[nodiscard]] const std::vector<Slot> &slots() const;
 

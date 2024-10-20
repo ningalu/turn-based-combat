@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 namespace ngl::tbc {
-Layout::Layout(std::vector<Side> structure) : structure_{structure} {
+Layout::Layout(std::vector<Side> structure) : structure_{std::move(structure)} {
   std::unordered_map<std::size_t, std::size_t> owner_counts;
   for (auto &side : structure_) {
     for (std::size_t i = 0; i < side.size(); i++) {

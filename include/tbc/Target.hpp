@@ -20,19 +20,19 @@ struct Target {
     std::size_t member;
   };
 
-  Target(SlotTarget t);
-  Target(SideTarget t);
-  Target(BattleTarget t);
-  Target(PartyTarget t);
+  explicit Target(SlotTarget t);
+  explicit Target(SideTarget t);
+  explicit Target(BattleTarget t);
+  explicit Target(PartyTarget t);
 
   template <typename T>
   [[nodiscard]] static std::vector<T> Filter(const std::vector<Target> &t) {
     std::vector<T> out;
     for (const auto &target : t) {
-      std::visit([&](auto &&payload) {
-        using P = std::decay_t<decltype(payload)>;
+      std::visit([&](auto &&visited) {
+        using P = std::decay_t<decltype(visited)>;
         if constexpr (std::is_same_v<P, T>) {
-          out.push_back(payload);
+          out.push_back(visited);
         }
       },
                  target.payload);

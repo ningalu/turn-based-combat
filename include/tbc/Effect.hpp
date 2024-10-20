@@ -36,7 +36,7 @@ class Effect {
 public:
   using Result = EffectResult::Result<TEvents, TCommands>;
 
-  Effect(std::function<Result(TBattle &, const std::vector<Target> &)> f) : xfer_{f} {}
+  explicit Effect(std::function<Result(TBattle &, const std::vector<Target> &)> f) : xfer_{std::move(f)} {}
 
   Result Apply(TBattle &battle, const std::vector<Target> &targets) {
     return CheckBattle(battle, xfer_(battle, targets));

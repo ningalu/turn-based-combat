@@ -30,24 +30,25 @@ class BattleScheduler {
 public:
   template <typename TSpecificEvent>
   void SetHandler(std::function<std::vector<TAction>(TSpecificEvent, TBattle &)> handler) {
-    event_handlers_.RegisterHandler<TSpecificEvent>(handler);
+    event_handlers_.template RegisterHandler<TSpecificEvent>(handler);
   }
 
   template <typename TSpecificEvent>
   [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TSpecificEvent &e, TBattle &b) const {
     std::optional<std::vector<TAction>> out = std::nullopt;
-    if (event_handlers_.HasHandler<TSpecificEvent>()) {
-      out = event_handlers_.PostEvent<TSpecificEvent>(e, b);
+    // .template looks gross as fuck
+    if (event_handlers_.template HasHandler<TSpecificEvent>()) {
+      out = event_handlers_.template PostEvent<TSpecificEvent>(e, b);
     }
     return out;
   }
 
-  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvents &e, TBattle &b) const {
-    return std::visit([&, this](auto &&event) {
-      using T = std::decay_t<decltype(event)>;
-      return PostEvent<T>(event, b);
+  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvents &event, TBattle &battle) const {
+    return std::visit([&](auto &&event_payload) {
+      using T = std::decay_t<decltype(event_payload)>;
+      return PostEvent<T>(event_payload, battle);
     },
-                      e.payload);
+                      event.payload);
   }
 
   void SetActionTranslator(const TActionTranslator &translator) {
@@ -62,6 +63,7 @@ public:
   [[nodiscard]] std::vector<TAction> TranslateActions(const std::vector<TCommand> &commands, const TBattle &battle) const {
     assert(action_translator_);
     std::vector<TAction> out;
+    out.reserve(commands.size());
     for (const auto &command : commands) {
       out.push_back(action_translator_(command, battle));
     }
@@ -107,7 +109,7 @@ public:
   }
 
   [[nodiscard]] std::vector<std::size_t> RunBattle(TBattle &b) {
-    const auto player_indices = [&, this]() {
+    const auto player_indices = [&]() {
       std::vector<std::size_t> out(b.PlayerCount());
       std::iota(out.begin(), out.end(), std::size_t{0});
       return out;
@@ -144,7 +146,7 @@ protected:
         return false;
       }
 
-      [[maybe_unused]] auto [status, winners, commands, events] = result.value();
+      [[maybe_unused]] auto &[status, winners, commands, events] = result.value();
 
       if (status == EffectResult::Status::STOP) {
         action.Cancel();
@@ -152,7 +154,7 @@ protected:
 
       // if the effect caused the battle to end, report an interruption immediately
       // battle ending can sometimes still require effects to continue to be applied? TODO: research
-      if (winners.winners.size() > 0) {
+      if (!winners.winners.empty()) {
         battle.EndBattle(winners.winners);
         return false;
       }
@@ -167,12 +169,12 @@ protected:
       for (const auto &event : events.events) {
         const auto event_action = PostEvent(event, battle);
         if (event_action.has_value()) {
-          const auto event_action_values = event_action.value();
+          const auto &event_action_values = event_action.value();
           new_dynamic_actions.insert(new_dynamic_actions.begin(), event_action_values.begin(), event_action_values.end());
         }
       }
 
-      if (new_dynamic_actions.size() > 0) {
+      if (!new_dynamic_actions.empty()) {
         turn.AddDynamicActions(new_dynamic_actions);
         return true;
       }
@@ -181,10 +183,10 @@ protected:
   }
 
   [[nodiscard]] bool RunTurnUntilInterrupted(TTurn &turn, TBattle &battle) {
-    assert(battle.queued_commands.size() > 0);
+    assert(!battle.queued_commands.empty());
     auto &queued_commands = battle.queued_commands.at(0);
 
-    while (turn.dynamic_actions.size() > 0) {
+    while (!turn.dynamic_actions.empty()) {
       while (ApplyActionUntilInterrupted(turn.dynamic_actions.at(0), turn, battle)) {
         if (battle.HasEnded()) {
           return true;
@@ -193,7 +195,7 @@ protected:
       turn.dynamic_actions.erase(turn.dynamic_actions.begin());
     }
 
-    if (queued_commands.dynamic_commands.size() > 0) {
+    if (!queued_commands.dynamic_commands.empty()) {
       const auto queued_dynamic_command = queued_commands.dynamic_commands.at(0);
       queued_commands.dynamic_commands.erase(queued_commands.dynamic_commands.begin());
 
@@ -202,17 +204,17 @@ protected:
       return true;
     }
 
-    while (turn.static_actions.size() > 0) {
+    while (!turn.static_actions.empty()) {
       while (ApplyActionUntilInterrupted(turn.static_actions.at(0), turn, battle)) {
         if (battle.HasEnded()) {
           return true;
         }
 
-        if (queued_commands.dynamic_commands.size() > 0) {
+        if (!queued_commands.dynamic_commands.empty()) {
           return true;
         }
 
-        if (turn.dynamic_actions.size() > 0) {
+        if (!turn.dynamic_actions.empty()) {
           return true;
         }
       }
@@ -220,14 +222,14 @@ protected:
       const auto static_action_end_result = PostEvent<DefaultEvents::StaticActionEnd>({}, battle);
       if (static_action_end_result.has_value()) {
         const auto &static_action_end_actions = static_action_end_result.value();
-        if (static_action_end_actions.size() > 0) {
+        if (!static_action_end_actions.empty()) {
           turn.AddDynamicActions(static_action_end_actions);
           return true;
         }
       }
     }
 
-    if (queued_commands.static_commands.size() > 0) {
+    if (!queued_commands.static_commands.empty()) {
       const auto queued_static_command = queued_commands.static_commands.at(0);
       queued_commands.static_commands.erase(queued_commands.static_commands.begin());
 

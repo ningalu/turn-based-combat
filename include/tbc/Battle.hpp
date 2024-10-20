@@ -18,16 +18,21 @@
 
 namespace ngl::tbc {
 struct BattleLog {
-  BattleLog(std::size_t num_players);
+  explicit BattleLog(std::size_t num_players);
   BattleLog(std::size_t num_players, const std::string &default_message);
+
   void Insert(std::size_t player, const std::string &message);
   void Insert(const std::unordered_set<std::size_t> &players, const std::string &message);
   void Insert(std::nullopt_t spectator, const std::string &message);
+  void Insert(std::optional<std::size_t> spectator, const std::string &message);
   void Insert(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message);
+
   [[nodiscard]] std::optional<const std::string *> Retrieve(std::size_t player) const;
   [[nodiscard]] std::optional<const std::string *> Retrieve(std::nullopt_t spectator) const;
+
   void Clear(std::size_t player);
   void Clear(std::nullopt_t spectator);
+
   std::unordered_map<std::optional<std::size_t>, const std::string *> distribution;
   std::unordered_set<std::string> messages;
 };
@@ -48,9 +53,11 @@ class Battle : public TState {
 public:
   using Log = BattleLog;
 
-  Battle(const TState &state_, std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout) : TState{state_},
-                                                                                                                 seed_{seed}, comms_{comms}, layout_{layout} {}
-  Battle(std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout) : Battle{{}, seed, comms, layout} {}
+  Battle(const TState &state_, std::size_t seed, std::vector<TPlayerComms> comms, Layout layout)
+      : TState{state_}, seed_{seed}, comms_{std::move(comms)}, layout_{std::move(layout)} {}
+
+  Battle(std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout)
+      : Battle{{}, seed, comms, layout} {}
 
   std::vector<CommandQueue<TCommand>> queued_commands;
 
@@ -67,27 +74,32 @@ public:
   }
 
   void SetSpectatorLogHandler(TLogHandler handler) { spectator_log_output_ = handler; }
+
   void SetPlayerLogHandler(std::size_t player, TLogHandler handler) {
     if (player >= comms_.size()) {
       throw std::out_of_range{"Assigning Log handler to invalid player index: " + std::to_string(player)};
     }
     comms_.at(player).SetLogHandler(handler);
   }
+
   void SetMasterLogHandler(TLogHandler handler) { master_log_output_ = handler; }
 
   void PostLog(const std::string &message) {
     log_buffer_.push_back(Log{comms_.size(), message});
   }
+
   void PostLog(std::optional<std::size_t> player, const std::string &message) {
-    Log l{comms_.size()};
-    l.Insert(player, message);
+    Log log{comms_.size()};
+    log.Insert(player, message);
     log_buffer_.push_back(log);
   }
+
   void PostLog(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message) {
-    Log l{comms_.size()};
-    l.Insert(players, message);
+    Log log{comms_.size()};
+    log.Insert(players, message);
     log_buffer_.push_back(log);
   }
+
   void PostLog(const Log &log) {
     log_buffer_.push_back(log);
   }
@@ -147,7 +159,11 @@ public:
 
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
-    for (const auto [player, valid_commands] : players) {
+    // Clang cant capture structured bindings in closures????????? Are they stupid?????????????????????????????????????
+    for (const auto &destructure : players) {
+      const auto &player         = destructure.first;
+      const auto &valid_commands = destructure.second;
+
       assert(comms_.size() > player);
 
       // Async poll each player for static commands, rejecting and repolling if any are invalid
@@ -212,7 +228,7 @@ public:
     }();
 
     const auto turn = RequestCommands(player_indices);
-    if (queued_commands.size() == 0) {
+    if (queued_commands.empty()) {
       queued_commands.push_back(turn);
     } else {
       queued_commands.at(0).Merge(turn);
@@ -220,12 +236,12 @@ public:
   }
 
   void NextTurn() {
-    if (queued_commands.size() > 0) {
+    if (!queued_commands.empty()) {
       queued_commands.erase(queued_commands.begin());
     }
   }
 
-  void EndBattle(std::vector<std::size_t> winners) {
+  void EndBattle(const std::vector<std::size_t> &winners) {
     winner_indices_ = winners;
   }
 

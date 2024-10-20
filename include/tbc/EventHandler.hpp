@@ -12,7 +12,7 @@ namespace ngl::tbc {
 namespace detail {
 template <typename TBattle, typename TEvents, typename TCommands, typename TEvent>
 using EventHandlerCallback = std::function<std::vector<Action<TBattle, TEvents, TCommands>>(TEvent, TBattle &)>;
-}
+} // namespace detail
 
 template <typename TBattle, typename TCommands, typename TEvent>
 class EventHandler;
@@ -32,7 +32,7 @@ protected:
     using Callbacks = std::tuple<Callback<TPayloads>...>;
   };
 
-  using Callbacks = HandlerDetail<typename Event<TUserPayloads...>::Detail>::Callbacks;
+  using Callbacks = typename HandlerDetail<typename Event<TUserPayloads...>::Detail>::Callbacks;
 
 public:
   template <typename TSpecificEvent>
