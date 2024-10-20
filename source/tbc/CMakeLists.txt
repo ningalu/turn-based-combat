@@ -6,6 +6,7 @@ add_library(
     Slot.cpp
     Side.cpp
     Layout.cpp
+    Battle.cpp
 )
 
 target_include_directories(
