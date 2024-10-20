@@ -20,7 +20,7 @@ TEST_CASE("Event Handler can be instantiated", "[EventHandler]") {
   REQUIRE_FALSE(eh.HasHandler<int>());
   const auto action = TestAction{std::vector<TestDefEffect>{}};
   std::vector<int> handler_output;
-  const auto handler = [&](int i, TestBattle &) { handler_output.push_back(i); return std::vector<TestAction>{action}; };
+  const auto handler = [&](int i, [[maybe_unused]] TestBattle &battle) { handler_output.push_back(i); return std::vector<TestAction>{action}; };
   REQUIRE_NOTHROW(eh.RegisterHandler<int>(handler));
   TestBattle b{0, {}, {}};
   auto action_out = eh.PostEvent<int>(1, b);

@@ -1,6 +1,6 @@
 add_library(
     ngl-tbc_lib OBJECT
-    
+
     Target.cpp
 
     Slot.cpp
@@ -17,4 +17,9 @@ target_include_directories(
 target_compile_features(ngl-tbc_lib PUBLIC cxx_std_20)
 
 find_package(fmt REQUIRED)
-target_link_libraries(ngl-tbc_lib PRIVATE fmt::fmt)
+find_package(Threads REQUIRED)
+target_link_libraries(
+    ngl-tbc_lib
+    PRIVATE fmt::fmt
+    PRIVATE Threads::Threads
+)

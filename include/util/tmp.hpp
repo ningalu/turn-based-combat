@@ -37,12 +37,10 @@ struct is_unique<F, T...> {
 };
 
 template <typename... T>
-constexpr bool is_unique_v = is_unique<T...>::value;
+constexpr inline bool is_unique_v = is_unique<T...>::value;
 
-namespace {
 static_assert(is_unique_v<int, double>);
 static_assert(!is_unique_v<int, int>);
-} // namespace
 
 template <typename T, typename... TTypes>
 struct is_present {
@@ -50,12 +48,10 @@ struct is_present {
 };
 
 template <typename T, typename... TTypes>
-constexpr bool is_present_v = is_present<T, TTypes...>::value;
+constexpr inline bool is_present_v = is_present<T, TTypes...>::value;
 
-namespace {
 static_assert(is_present_v<int, int, double>);
 static_assert(!is_present_v<int, char, double>);
-} // namespace
 
 // typeset
 template <typename... TTypes>
@@ -67,7 +63,7 @@ class typeset {
 
 public:
   typeset() = default;
-  typeset(bool on) {
+  explicit typeset(bool on) {
     if (on) {
       insert<TTypes...>();
     }
@@ -109,7 +105,7 @@ public:
     requires(sizeof...(TEraseTypes) > 1)
   void erase() {
     static_assert(is_unique_v<TEraseTypes...>);
-    (erase(TEraseTypes), ...);
+    (erase<TEraseTypes>(), ...);
   }
 
   template <typename T>

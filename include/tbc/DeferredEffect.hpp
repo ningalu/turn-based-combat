@@ -10,10 +10,10 @@
 namespace ngl::tbc {
 template <typename TBattle, typename TEvents, typename TCommands>
 class DeferredEffect {
-  using Result = Effect<TBattle, TEvents, TCommands>::Result;
+  using Result = typename Effect<TBattle, TEvents, TCommands>::Result;
 
 public:
-  DeferredEffect(const Effect<TBattle, TEvents, TCommands> &effect, const std::vector<Target> &targets) : effect_{effect}, targets_{targets} {}
+  DeferredEffect(Effect<TBattle, TEvents, TCommands> effect, std::vector<Target> targets) : effect_{std::move(effect)}, targets_{std::move(targets)} {}
 
   [[nodiscard]] Result Apply(TBattle &b) {
     return effect_.Apply(b, targets_);

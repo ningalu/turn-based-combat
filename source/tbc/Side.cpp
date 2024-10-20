@@ -1,14 +1,14 @@
 #include "tbc/Side.h"
 
 namespace ngl::tbc {
-Side::Side(std::vector<Slot> slots) : slots_{slots} {}
+Side::Side(std::vector<Slot> slots) : slots_{std::move(slots)} {}
 
 [[nodiscard]] const std::vector<Slot> &Side::slots() const {
   return slots_;
 }
 
 [[nodiscard]] Slot &Side::slot(std::size_t i) {
-  return const_cast<Slot &>(const_cast<const Side *>(this)->slot(i));
+  return const_cast<Slot &>(const_cast<const Side *>(this)->slot(i)); // NOLINT
 }
 
 [[nodiscard]] const Slot &Side::slot(std::size_t i) const {

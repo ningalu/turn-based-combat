@@ -6,7 +6,7 @@
 
 namespace ngl::tbc {
 struct Slot {
-  Slot(std::size_t owner_);
+  explicit Slot(std::size_t owner);
 
   std::size_t party;
 
