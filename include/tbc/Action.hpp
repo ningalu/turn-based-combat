@@ -18,7 +18,8 @@ public:
   using Result = Effect<TBattle, TEvents, TCommands>::Result;
 
 protected:
-  using Deferred = std::variant<DeferredEffect<TBattle, TEvents, TCommands>, DeferredUserEffect<TBattle, TEvents, TCommands>>;
+  using Deferred   = std::variant<DeferredEffect<TBattle, TEvents, TCommands>, DeferredUserEffect<TBattle, TEvents, TCommands>>;
+  using TDecorator = std::function<Result(TBattle &)>;
 
   template <typename T>
   [[nodiscard]] static std::vector<Deferred> DeferredVec(const std::vector<T> &dv) {
@@ -33,10 +34,13 @@ protected:
   using ActionImpl = std::function<std::optional<Result>(TBattle &)>;
 
 public:
+  TDecorator pre;
+  TDecorator post;
+
   Action(const std::vector<DeferredEffect<TBattle, TEvents, TCommands>> &d) : Action(DeferredVec(d)) {}
   Action(const std::vector<DeferredUserEffect<TBattle, TEvents, TCommands>> &d) : Action(DeferredVec(d)) {}
   Action(const std::vector<Deferred> &d) : Action<TBattle, TEvents, TCommands>(DeferredEffectsImpl(d)) {}
-  Action(const ActionImpl &impl) : started_{false}, cancelled_{false}, action_impl_{impl} {}
+  Action(const ActionImpl &impl) : started_{false}, finished_{false}, cancelled_{false}, action_impl_{impl} {}
 
   // TODO: should this be taking a copy? i only really want the lambda capture to copy this
   [[nodiscard]] static std::function<std::optional<Result>(TBattle &)> DeferredEffectsImpl(std::vector<Deferred> deferred) {
@@ -60,9 +64,26 @@ public:
 
     if (!started_) {
       started_ = true;
+
+      if (pre) {
+        return pre(battle);
+      }
     }
 
-    return action_impl_(battle);
+    const auto res = action_impl_(battle);
+    if (res.has_value()) {
+      return res.value();
+    }
+
+    // main action impl is finished
+    if (!finished_) {
+      finished_ = true;
+      if (post) {
+        return post(battle);
+      }
+    }
+
+    return std::nullopt;
   }
 
   [[nodiscard]] bool Started() {
@@ -75,6 +96,7 @@ public:
 
 protected:
   bool started_;
+  bool finished_;
   bool cancelled_;
   std::function<std::optional<Result>(TBattle &)> action_impl_;
 };
