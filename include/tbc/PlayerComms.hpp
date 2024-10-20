@@ -13,6 +13,7 @@ public:
   using TPayloadTypeSet         = typename TCommand::PayloadTypeSet;
   using TRequestCommandHandler  = std::function<std::vector<TPayload>(const TPayloadTypeSet &)>;
   using TCommandResponseHandler = std::function<void(const TCommandResult &)>;
+  using TLogHandler             = std::function<void(const std::string &)>;
 
   PlayerComms(const std::string &name, TRequestCommandHandler request_handler)
       : name_{name},
@@ -28,10 +29,18 @@ public:
     }
   }
 
+  void SetLogHandler(TLogHandler handler) { log_handler_ = handler; }
+  void PostLog(const std::string &log) {
+    if (log_handler_) {
+      log_handler_(log);
+    }
+  }
+
 protected:
   std::string name_;
   TRequestCommandHandler request_handler_;
   TCommandResponseHandler response_handler_;
+  TLogHandler log_handler_;
 };
 } // namespace ngl::tbc
 

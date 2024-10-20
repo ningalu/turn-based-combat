@@ -6,6 +6,9 @@
 #include <future>
 #include <iostream>
 #include <numeric>
+#include <stdexcept>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "tbc/Command.hpp"
@@ -14,6 +17,21 @@
 #include "tbc/PlayerComms.hpp"
 
 namespace ngl::tbc {
+struct BattleLog {
+  BattleLog(std::size_t num_players);
+  BattleLog(std::size_t num_players, const std::string &default_message);
+  void Insert(std::size_t player, const std::string &message);
+  void Insert(const std::unordered_set<std::size_t> &players, const std::string &message);
+  void Insert(std::nullopt_t spectator, const std::string &message);
+  void Insert(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message);
+  [[nodiscard]] std::optional<const std::string *> Retrieve(std::size_t player);
+  [[nodiscard]] std::optional<const std::string *> Retrieve(std::nullopt_t spectator);
+  void Clear(std::size_t player);
+  void Clear(std::nullopt_t spectator);
+  std::unordered_map<std::optional<std::size_t>, const std::string *> distribution;
+  std::unordered_set<std::string> messages;
+};
+
 template <typename TUnit, typename TState, typename TCommand, typename TCommandResult>
 class Battle : public TState {
   using TBattle                = Battle<TUnit, TState, TCommand, TCommandResult>;
@@ -25,7 +43,11 @@ class Battle : public TState {
   using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
+  using TLogHandler = typename TPlayerComms::TLogHandler;
+
 public:
+  using Log = BattleLog;
+
   Battle(const TState &state_, std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout) : TState{state_},
                                                                                                                  seed_{seed}, comms_{comms}, layout_{layout} {}
   Battle(std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout) : Battle{{}, seed, comms, layout} {}
@@ -42,6 +64,32 @@ public:
 
   [[nodiscard]] std::size_t PlayerCount() const {
     return comms_.size();
+  }
+
+  void SetSpectatorLogHandler(TLogHandler handler) { spectator_log_output_ = handler; }
+  void SetPlayerLogHandler(std::size_t player, TLogHandler handler) {
+    if (player >= comms_.size()) {
+      throw std::out_of_range{"Assigning Log handler to invalid player index: " + std::to_string(player)};
+    }
+    comms_.at(player).SetLogHandler(handler);
+  }
+  void SetMasterLogHandler(TLogHandler handler) { master_log_output_ = handler; }
+
+  void PostLog(const std::string &message) {
+    log_buffer_.push_back(Log{comms_.size(), message});
+  }
+  void PostLog(std::optional<std::size_t> player, const std::string &message) {
+    Log l{comms_.size()};
+    l.Insert(player, message);
+    log_buffer_.push_back(log);
+  }
+  void PostLog(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message) {
+    Log l{comms_.size()};
+    l.Insert(players, message);
+    log_buffer_.push_back(log);
+  }
+  void PostLog(const Log &log) {
+    log_buffer_.push_back(log);
   }
 
   void SetCommandValidator(const TCommandValidator &validator) {
@@ -176,7 +224,11 @@ public:
 
 protected:
   std::size_t seed_;
+  std::vector<Log> log_buffer_;
+  TLogHandler master_log_output_;
   std::vector<TPlayerComms> comms_;
+  TLogHandler spectator_log_output_;
+
   Layout layout_;
   // TODO: refactor
   std::optional<std::vector<std::size_t>> winner_indices_;
