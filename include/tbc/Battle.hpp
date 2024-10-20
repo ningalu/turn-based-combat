@@ -24,8 +24,8 @@ struct BattleLog {
   void Insert(const std::unordered_set<std::size_t> &players, const std::string &message);
   void Insert(std::nullopt_t spectator, const std::string &message);
   void Insert(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message);
-  [[nodiscard]] std::optional<const std::string *> Retrieve(std::size_t player);
-  [[nodiscard]] std::optional<const std::string *> Retrieve(std::nullopt_t spectator);
+  [[nodiscard]] std::optional<const std::string *> Retrieve(std::size_t player) const;
+  [[nodiscard]] std::optional<const std::string *> Retrieve(std::nullopt_t spectator) const;
   void Clear(std::size_t player);
   void Clear(std::nullopt_t spectator);
   std::unordered_map<std::optional<std::size_t>, const std::string *> distribution;
@@ -130,6 +130,21 @@ public:
     TCommandValidator validator = nullptr,
     std::size_t attempts        = 1
   ) {
+    // TODO: post logs asynchronously
+    for (const auto &log : log_buffer_) {
+      for (std::size_t i = 0; i < comms_.size(); i++) {
+        const auto message = log.Retrieve(i);
+        if (message.has_value()) {
+          comms_.at(i).PostLog(*message.value());
+        }
+      }
+      const auto spectator_message = log.Retrieve(std::nullopt);
+      if (spectator_message.has_value()) {
+        spectator_log_output_(*spectator_message.value());
+      }
+      log_buffer_.erase(log_buffer_.begin());
+    }
+
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
     for (const auto [player, valid_commands] : players) {
@@ -224,6 +239,7 @@ public:
 
 protected:
   std::size_t seed_;
+  // std::queue? any reason to look at past logs?
   std::vector<Log> log_buffer_;
   TLogHandler master_log_output_;
   std::vector<TPlayerComms> comms_;

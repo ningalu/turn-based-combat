@@ -48,14 +48,14 @@ void BattleLog::Insert(const std::unordered_set<std::optional<std::size_t>> &pla
   }
 }
 
-[[nodiscard]] std::optional<const std::string *> BattleLog::Retrieve(std::size_t player) {
+[[nodiscard]] std::optional<const std::string *> BattleLog::Retrieve(std::size_t player) const {
   assert(distribution.contains(std::optional{player}));
   using TOut     = std::optional<const std::string *>;
   const auto ptr = distribution.at(player);
   return ptr ? TOut{std::nullopt} : TOut{ptr};
 }
 
-[[nodiscard]] std::optional<const std::string *> BattleLog::Retrieve(std::nullopt_t spectator) {
+[[nodiscard]] std::optional<const std::string *> BattleLog::Retrieve(std::nullopt_t spectator) const {
   assert(distribution.contains(spectator));
   using TOut     = std::optional<const std::string *>;
   const auto ptr = distribution.at(spectator);
