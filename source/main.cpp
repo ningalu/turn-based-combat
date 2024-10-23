@@ -73,7 +73,7 @@ MyEffect resolve_rps_effect() {
   return MyEffect{[](MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
     int win_table[3][3] = {{0, -1, 1}, {1, 0, -1}, {-1, 1, 0}}; // NOLINT TODO: find a way to turn off warnings for the executable project
 
-    const auto outcome = win_table[b.p1_state][b.p2_state];
+    const auto outcome = win_table[b.state.p1_state][b.state.p2_state];
     if (outcome == 1) {
       b.EndBattle({0});
     } else if (outcome == -1) {
@@ -86,8 +86,8 @@ MyEffect resolve_rps_effect() {
 MyUserEffect GetEffect(int state) {
   return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
     switch (u.side) {
-      case 0: b.p1_state = state; break;
-      case 1: b.p2_state = state; break;
+      case 0: b.state.p1_state = state; break;
+      case 1: b.state.p2_state = state; break;
       default: throw std::logic_error{"invalid side"};
     }
     std::cout << "setting " << u.side << " to " << state << "\n";
@@ -97,8 +97,8 @@ MyUserEffect GetEffect(int state) {
 MyUserEffect GetEffectWithIntEvent(int state) {
   return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
     switch (u.side) {
-      case 0: b.p1_state = state; break;
-      case 1: b.p2_state = state; break;
+      case 0: b.state.p1_state = state; break;
+      case 1: b.state.p2_state = state; break;
       default: throw std::logic_error{"invalid side"};
     }
     std::cout << "setting " << u.side << " to " << state << "\n";

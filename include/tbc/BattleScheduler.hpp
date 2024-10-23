@@ -14,13 +14,14 @@
 #include "tbc/Command.hpp"
 #include "tbc/Effect.hpp"
 #include "tbc/EventHandler.hpp"
+#include "tbc/PlayerCommandRequest.hpp"
 #include "tbc/Turn.hpp"
 
 namespace ngl::tbc {
-template <typename TUnit, typename TState, typename TCommand, typename TCommandResult, typename TEvents>
+template <typename TState, typename TCommand, typename TCommandResult, typename TEvents>
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
-  using TBattle         = Battle<TUnit, TState, TCommand, TCommandResult>;
+  using TBattle         = Battle<TState, TCommand, TCommandResult>;
   using TAction         = Action<TBattle, TEvents, TCommand>;
   using TTurn           = Turn<TBattle, TEvents, TCommand>;
 
@@ -108,30 +109,36 @@ public:
     }
   }
 
-  [[nodiscard]] std::vector<std::size_t> RunBattle(TBattle &b) {
+  [[nodiscard]] std::vector<std::size_t> RunBattle(TBattle &battle) {
     const auto player_indices = [&]() {
-      std::vector<std::size_t> out(b.PlayerCount());
+      std::vector<std::size_t> out(battle.PlayerCount());
       std::iota(out.begin(), out.end(), std::size_t{0});
       return out;
     }();
 
-    for (std::size_t i = 0; !b.HasEnded(); i++) {
+    for (std::size_t i = 0; !battle.HasEnded(); i++) {
       std::cout << "Start turn " << i + 1 << "\n";
-      b.StartTurn();
-      b.queued_commands.at(0).static_commands = b.OrderCommands(b.queued_commands.at(0).static_commands);
+
+      std::vector<PlayerCommandRequest<TCommand>> requests;
+      for (std::size_t player = 0; player < battle.PlayerCount(); player++) {
+        requests.push_back(
+          PlayerCommandRequest<TCommand>{player, battle.GetValidTurnStartCommands(player)}
+        );
+      }
+
+      battle.StartTurn(requests);
+      battle.current_turn_commands.static_commands = battle.OrderCommands(battle.current_turn_commands.static_commands);
       Turn<TBattle, TEvents, TCommand> turn;
       if (i == 0) {
-        auto event_action = PostEvent(DefaultEvents::BattleStart{}, b);
+        auto event_action = PostEvent(DefaultEvents::BattleStart{}, battle);
         if (event_action.has_value()) {
           turn.AddDynamicActions(event_action.value());
         }
       }
-      RunTurn(turn, b);
-
-      b.NextTurn();
+      RunTurn(turn, battle);
     }
 
-    return b.GetWinners();
+    return battle.GetWinners();
   }
 
 protected:
@@ -183,8 +190,7 @@ protected:
   }
 
   [[nodiscard]] bool RunTurnUntilInterrupted(TTurn &turn, TBattle &battle) {
-    assert(!battle.queued_commands.empty());
-    auto &queued_commands = battle.queued_commands.at(0);
+    auto &queued_commands = battle.current_turn_commands;
 
     while (!turn.dynamic_actions.empty()) {
       while (ApplyActionUntilInterrupted(turn.dynamic_actions.at(0), turn, battle)) {

@@ -14,6 +14,7 @@
 #include "tbc/Command.hpp"
 #include "tbc/CommandQueue.hpp"
 #include "tbc/Layout.h"
+#include "tbc/PlayerCommandRequest.hpp"
 #include "tbc/PlayerComms.hpp"
 
 namespace ngl::tbc {
@@ -37,9 +38,9 @@ struct BattleLog {
   std::unordered_set<std::string> messages;
 };
 
-template <typename TUnit, typename TState, typename TCommand, typename TCommandResult>
-class Battle : public TState {
-  using TBattle                = Battle<TUnit, TState, TCommand, TCommandResult>;
+template <typename TState, typename TCommand, typename TCommandResult>
+class Battle {
+  using TBattle                = Battle<TState, TCommand, TCommandResult>;
   using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
 
@@ -54,12 +55,14 @@ public:
   using Log = BattleLog;
 
   Battle(const TState &state_, std::size_t seed, std::vector<TPlayerComms> comms, Layout layout)
-      : TState{state_}, seed_{seed}, comms_{std::move(comms)}, layout_{std::move(layout)} {}
+      : state{state_}, seed_{seed}, comms_{std::move(comms)}, layout_{std::move(layout)} {}
 
   Battle(std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout)
       : Battle{{}, seed, comms, layout} {}
 
-  std::vector<CommandQueue<TCommand>> queued_commands;
+  TState state;
+  std::vector<std::vector<TCommand>> queued_commands;
+  CommandQueue<TCommand> current_turn_commands;
 
   [[nodiscard]] const Layout &layout() const {
     return layout_;
@@ -131,14 +134,14 @@ public:
   }
 
   [[nodiscard]] std::vector<TCommand> RequestCommands(
-    const std::vector<std::pair<std::size_t, TCommandPayloadTypeSet>> &players,
+    const std::vector<PlayerCommandRequest<TCommand>> &players,
     std::size_t attempts
   ) {
     return RequestCommands(players, nullptr, attempts);
   }
 
   [[nodiscard]] CommandQueue<TCommand> RequestCommands(
-    const std::vector<std::pair<std::size_t, TCommandPayloadTypeSet>> &players,
+    const std::vector<PlayerCommandRequest<TCommand>> &players,
     TCommandValidator validator = nullptr,
     std::size_t attempts        = 1
   ) {
@@ -160,9 +163,9 @@ public:
     std::vector<std::future<std::vector<TCommand>>> action_handles;
 
     // Clang cant capture structured bindings in closures????????? Are they stupid?????????????????????????????????????
-    for (const auto &destructure : players) {
-      const auto &player         = destructure.first;
-      const auto &valid_commands = destructure.second;
+    for (const auto &request : players) {
+      const auto &player         = request.player;
+      const auto &valid_commands = request.valid_commands;
 
       assert(comms_.size() > player);
 
@@ -217,28 +220,25 @@ public:
     queued_commands.at(turns_ahead).BufferCommand(c);
   }
 
-  void StartTurn() {
-    const auto player_indices = [&, this]() {
-      std::vector<std::pair<std::size_t, TCommandPayloadTypeSet>> out(PlayerCount());
-      for (std::size_t i = 0; i < out.size(); i++) {
-        out.at(i).first  = i;
-        out.at(i).second = GetValidTurnStartCommands(i);
-      }
-      return out;
-    }();
+  void StartTurn(const std::vector<PlayerCommandRequest<TCommand>> &scheduled_command_requests) {
+    current_turn_commands.ClearCommands();
 
-    const auto turn = RequestCommands(player_indices);
-    if (queued_commands.empty()) {
-      queued_commands.push_back(turn);
-    } else {
-      queued_commands.at(0).Merge(turn);
-    }
-  }
-
-  void NextTurn() {
     if (!queued_commands.empty()) {
+      current_turn_commands.static_commands = std::move(queued_commands.at(0));
       queued_commands.erase(queued_commands.begin());
     }
+
+    // const auto player_indices = [&, this]() {
+    //   std::vector<std::pair<std::size_t, TCommandPayloadTypeSet>> out(PlayerCount());
+    //   for (std::size_t i = 0; i < out.size(); i++) {
+    //     out.at(i).first  = i;
+    //     out.at(i).second = GetValidTurnStartCommands(i);
+    //   }
+    //   return out;
+    // }();
+
+    const auto scheduled_commands = RequestCommands(scheduled_command_requests);
+    current_turn_commands.Merge(scheduled_commands);
   }
 
   void EndBattle(const std::vector<std::size_t> &winners) {
@@ -255,6 +255,7 @@ public:
 
 protected:
   std::size_t seed_;
+
   // std::queue? any reason to look at past logs?
   std::vector<Log> log_buffer_;
   TLogHandler master_log_output_;
