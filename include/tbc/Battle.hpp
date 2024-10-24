@@ -33,10 +33,24 @@ class Battle {
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
 public:
+  // is an event actionable? probably right?
   using Actionable = std::variant<TCommand, std::size_t, std::function<std::size_t(const TBattle &)>>;
 
   struct Schedule {
     std::vector<std::vector<Actionable>> order;
+    Schedule() = default;
+    Schedule(std::vector<TCommand> commands) {
+      for (const auto &command : commands) {
+        order.push_back(std::vector<Actionable>{Actionable{command}});
+      }
+    }
+    [[nodiscard]] bool Empty() const {
+      return order.empty();
+    }
+    void Next() {
+      assert(!Empty());
+      order.erase(order.begin());
+    }
   };
 
   Battle(const TState &state_, std::vector<TPlayerComms> comms, Layout layout)
@@ -103,13 +117,11 @@ public:
     comms_.Flush();
 
     std::vector<std::future<std::vector<TCommand>>> action_handles;
-
     // Clang cant capture structured bindings in closures????????? Are they stupid?????????????????????????????????????
     for (const auto &request : players) {
-      const auto &player         = request.player;
-      const auto &valid_commands = request.valid_commands;
-
+      const auto &player = request.player;
       assert(comms_.PlayerCount() > player);
+      const auto &valid_commands = request.valid_commands;
 
       // Async poll each player for static commands, rejecting and repolling if any are invalid
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
@@ -118,16 +130,10 @@ public:
 
         for (std::size_t i = 0; i < attempts; i++) {
           const auto incoming_payloads = comms_.players.at(player).RequestCommands(valid_commands).get();
-          if (validator) {
-            auto validation_result = validator(player, incoming_payloads, *this);
-            payloads               = validation_result.first;
-            result                 = validation_result.second;
-          } else {
-            auto validation_result = ValidateCommands(player, incoming_payloads);
-            payloads               = validation_result.first;
-            result                 = validation_result.second;
-          }
-          comms_.players.at(player).RequestCommandsResponse(result);
+          auto validation_result       = validator ? validator(player, incoming_payloads, *this) : ValidateCommands(player, incoming_payloads);
+          payloads                     = validation_result.first;
+          result                       = validation_result.second;
+          comms_.players.at(player).RespondToCommands(result);
           if (payloads.has_value()) {
             break;
           }
@@ -162,26 +168,31 @@ public:
     queued_commands.at(turns_ahead).BufferCommand(c);
   }
 
-  void StartTurn(const std::vector<PlayerCommandRequest<TCommand>> &scheduled_command_requests) {
-    current_turn_commands.ClearCommands();
-
-    if (!queued_commands.empty()) {
-      current_turn_commands.static_commands = std::move(queued_commands.at(0));
-      queued_commands.erase(queued_commands.begin());
-    }
-
-    const auto scheduled_commands = RequestCommands(scheduled_command_requests);
-    current_turn_commands.Merge({{}, scheduled_commands});
+  void InitTurn(const Schedule &schedule) {
+    current_turn_schedule = schedule;
   }
 
-  void StartTurn() {
-    current_turn_commands.ClearCommands();
+  // void StartTurn(const std::vector<PlayerCommandRequest<TCommand>> &scheduled_command_requests) {
+  //   current_turn_commands.ClearCommands();
+  //   current_turn_schedule.order.clear();
 
-    if (!queued_commands.empty()) {
-      current_turn_commands.static_commands = std::move(queued_commands.at(0));
-      queued_commands.erase(queued_commands.begin());
-    }
-  }
+  //   if (!queued_commands.empty()) {
+  //     current_turn_commands.static_commands = std::move(queued_commands.at(0));
+  //     queued_commands.erase(queued_commands.begin());
+  //   }
+
+  //   const auto scheduled_commands = RequestCommands(scheduled_command_requests);
+  //   current_turn_commands.Merge({{}, scheduled_commands});
+  // }
+
+  // void StartTurn() {
+  //   current_turn_commands.ClearCommands();
+
+  //   if (!queued_commands.empty()) {
+  //     current_turn_commands.static_commands = std::move(queued_commands.at(0));
+  //     queued_commands.erase(queued_commands.begin());
+  //   }
+  // }
 
   void EndBattle(const std::vector<std::size_t> &winners) {
     winner_indices_ = winners;

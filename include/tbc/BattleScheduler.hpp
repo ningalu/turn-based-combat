@@ -7,6 +7,7 @@
 #include <iostream>
 #include <numeric>
 #include <optional>
+#include <stack>
 #include <vector>
 
 #include "util/tmp.hpp"
@@ -21,31 +22,20 @@
 
 namespace ngl::tbc {
 
-template <typename TCommand>
-struct ScheduledCommands {
-  std::vector<PlayerCommandRequest<TCommand>> players;
-};
-
-struct ImmediateCommands {
-  std::vector<std::size_t> players;
-};
-
-template <typename TState, typename TCommand, typename TCommandResult, typename TEvents, typename TCommandRequestStrategy>
-  requires(tmp::is_present_v<TCommandRequestStrategy, ScheduledCommands<TCommand>, ImmediateCommands>)
+template <typename TState, typename TCommand, typename TCommandResult, typename TEvents>
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
   using TBattle         = Battle<TState, TCommand, TCommandResult>;
+  using TSchedule       = typename TBattle::Schedule;
   using TAction         = Action<TBattle, TEvents, TCommand>;
   using TTurn           = Turn<TBattle, TEvents, TCommand>;
 
   using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
-  using TCommandRequestStrategyHandler = std::function<TCommandRequestStrategy(const TBattle &)>;
+  using TScheduleGenerator = std::function<TSchedule(TBattle &, std::size_t)>;
 
 public:
-  TCommandRequestStrategyHandler CommandRequestStrategyHandler;
-
   template <typename TSpecificEvent>
   void SetHandler(std::function<std::vector<TAction>(TSpecificEvent, TBattle &)> handler) {
     event_handlers_.template RegisterHandler<TSpecificEvent>(handler);
@@ -67,6 +57,12 @@ public:
       return PostEvent<T>(event_payload, battle);
     },
                       event.payload);
+  }
+
+  void SetScheduleGenerator(TScheduleGenerator generator) { schedule_generator_ = std::move(generator); }
+  [[nodiscard]] TSchedule GenerateSchedule(TBattle &battle, std::size_t turn) {
+    assert(schedule_generator_);
+    return schedule_generator_(battle, turn);
   }
 
   void SetActionTranslator(const TActionTranslator &translator) {
@@ -97,31 +93,39 @@ public:
     return check_battle_ended_(battle);
   }
 
-  void RunTurn(Turn<TBattle, TEvents, TCommand> turn, TBattle &b) {
-
-    auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({}, b);
+  void RunTurn([[maybe_unused]] TTurn turn, TBattle &battle) {
+    auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({}, battle);
     if (pre_turn.has_value()) {
-      turn.AddDynamicActions(pre_turn.value());
+      for (const auto &action : pre_turn.value()) {
+        ResolveAction(action, battle);
+      }
     }
 
-    // Run from the start every time a restart is required
-    while (RunTurnUntilInterrupted(turn, b)) {
-      if (b.HasEnded()) {
-        return;
-      }
+    while (!battle.current_turn_schedule.Empty()) {
+      const auto actionable = battle.current_turn_schedule.order.at(0);
+      // TODO: figure out configurable simultaneous/sequential actionable resolution
+      assert(actionable.size() == 1);
+      const auto action = std::visit([&](auto &&payload) {
+        using T = std::decay_t<decltype(payload)>;
+        if constexpr (std::is_same_v<T, TCommand>) {
+          return TranslateAction(payload, battle);
+        } else {
+          // TODO: query immediate action actionables
+          assert(false);
+          return TAction{std::vector<typename TAction::Deferred>{}};
+        }
+      },
+                                     actionable.at(0));
+      ResolveAction(action, battle);
+      battle.current_turn_schedule.Next();
     }
 
     // TODO: temp, figure out how to control post battle effects
-    if (!b.HasEnded()) {
-      auto post_turn = PostEvent<DefaultEvents::TurnsEnd>({}, b);
+    if (!battle.HasEnded()) {
+      auto post_turn = PostEvent<DefaultEvents::TurnsEnd>({}, battle);
       if (post_turn.has_value()) {
-        turn.AddDynamicActions(post_turn.value());
-      }
-
-      // Run all actions added by post turn event
-      while (RunTurnUntilInterrupted(turn, b)) {
-        if (b.HasEnded()) {
-          return;
+        for (const auto &action : post_turn.value()) {
+          ResolveAction(action, battle);
         }
       }
     }
@@ -131,31 +135,7 @@ public:
     for (std::size_t i = 0; !battle.HasEnded(); i++) {
       std::cout << "Start turn " << i + 1 << "\n";
 
-      if constexpr (std::is_same_v<TCommandRequestStrategy, ScheduledCommands<TCommand>>) {
-
-        std::vector<PlayerCommandRequest<TCommand>> requests;
-        if (CommandRequestStrategyHandler) {
-          requests = CommandRequestStrategyHandler(battle).players;
-        } else {
-          for (std::size_t player = 0; player < battle.PlayerCount(); player++) {
-            requests.push_back(
-              PlayerCommandRequest<TCommand>{player, battle.GetValidTurnStartCommands(player)}
-            );
-          }
-        }
-
-        battle.StartTurn(requests);
-        battle.current_turn_commands.static_commands = battle.OrderCommands(battle.current_turn_commands.static_commands);
-      } else {
-        if (CommandRequestStrategyHandler) {
-          remaining_immediate_commands_ = CommandRequestStrategyHandler(battle).players;
-        } else {
-          for (std::size_t player = 0; player < battle.PlayerCount(); player++) {
-            remaining_immediate_commands_.push_back(i);
-          }
-        }
-        battle.StartTurn();
-      }
+      battle.InitTurn(GenerateSchedule(battle, i));
 
       Turn<TBattle, TEvents, TCommand> turn;
       if (i == 0) {
@@ -171,6 +151,65 @@ public:
   }
 
 protected:
+  void ResolveAction(const TAction &action, TBattle &battle, std::size_t max_depth = 100) {
+    std::stack<TAction> to_resolve;
+    to_resolve.push(action);
+
+    std::size_t depth = 0;
+    while ((to_resolve.size() > 0) && (depth < max_depth)) {
+      depth++;
+
+      const auto res = to_resolve.top().ApplyNext(battle);
+
+      // if the current action is resolved, try the next
+      if (!res.has_value()) {
+        to_resolve.pop();
+        continue;
+      }
+
+      const auto [status, winners, commands, events] = res.value();
+
+      // Resolve the current action even if the battle has ended
+      // TODO: make this configurable
+      // TODO: update this to match the current winner model
+      if (!winners.winners.empty()) {
+        battle.EndBattle(winners.winners);
+      }
+
+      // TODO: this is a placeholder. figure out something more flexible later
+      if (status == EffectResult::Status::FAILED) {
+        to_resolve.pop();
+        continue;
+      }
+
+      // TODO: this should be a vector of Actionable values
+      if (!commands.empty()) {
+        for (auto it = commands.rbegin(); it != commands.rend(); it++) {
+          const auto dynamic_action = TranslateAction(*it, battle);
+          to_resolve.push(dynamic_action);
+        }
+      }
+
+      // TODO: see effect result TODO
+      if (!events.events.empty()) {
+        for (auto event = events.events.rbegin(); event != events.events.rend(); event++) {
+          const auto event_actions_opt = PostEvent(*event, battle);
+          // TODO: why is this optional?
+          if (event_actions_opt.has_value()) {
+            const auto event_actions = event_actions_opt.value();
+            for (auto event_action = event_actions.rbegin(); event_action != event_actions.rend(); event_action++) {
+              to_resolve.push(*event_action);
+            }
+          }
+        }
+      }
+    }
+
+    if (!(depth < max_depth)) {
+      std::cout << "Exceeded maximum Action resolution depth\n";
+    }
+  }
+
   [[nodiscard]] bool ApplyActionUntilInterrupted(TAction &action, TTurn &turn, TBattle &battle) {
     const auto timeout = 100;
     for (std::size_t i = 0; i < timeout; i++) {
@@ -273,23 +312,12 @@ protected:
       return true;
     }
 
-    // TODO: replace this if constexpr stuff and implement a Schedule that contains Actionable objects
-    // using Schedule = std::vector<std::vector<Action | Command | PlayerIndex | ActionablePlayerQuery()>>
-    if constexpr (std::is_same_v<TCommandRequestStrategy, ImmediateCommands>) {
-      if (!remaining_immediate_commands_.empty()) {
-
-        const auto commands = battle.RequestCommands({remaining_immediate_commands_});
-        if (!commands.empty()) {
-          turn.AddStaticActions(commands);
-          return true;
-        }
-      }
-    }
-
     return false;
   }
 
   EventHandler<TBattle, TCommand, TEvents> event_handlers_;
+
+  TScheduleGenerator schedule_generator_;
 
   TActionTranslator action_translator_;
   TBattleEndChecker check_battle_ended_;

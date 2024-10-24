@@ -42,7 +42,7 @@ struct MyBattleState {
 
 using MyEvents = ngl::tbc::Event<int, double>;
 
-using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, MyCommands, MyCommandResult, MyEvents, ngl::tbc::ScheduledCommands<MyCommands>>;
+using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, MyCommands, MyCommandResult, MyEvents>;
 
 using MyBattle       = MyBattleTypes::TBattle;
 using MyScheduler    = MyBattleTypes::TBattleScheduler;
@@ -56,6 +56,8 @@ using MyDefUserEffect = MyBattleTypes::TDeferredUserEffect;
 using MyResult = MyBattleTypes::TEffectResult;
 using MyCmdSet = MyBattleTypes::TCommandPayloadTypeSet;
 using MyComms  = MyBattleTypes::TPlayerComms;
+
+using MySched = MyBattleTypes::TSchedule;
 
 MyEffect DebugEffect(int n) {
   return MyEffect{[=]([[maybe_unused]] auto &&...whatever) {std::cout << "effect resolution: " << n << "\n"; return MyResult{}; }};
@@ -204,6 +206,14 @@ ngl::tbc::Layout default_layout() {
   }};
 }
 
+MySched schedule_generator(MyBattle &battle, [[maybe_unused]] std::size_t turn) {
+  std::vector<MyBattleTypes::TCommandRequest> requests;
+  requests.push_back(MyBattleTypes::TCommandRequest{0, MyBattleTypes::TCommandPayloadTypeSet{true}});
+  requests.push_back(MyBattleTypes::TCommandRequest{1, MyBattleTypes::TCommandPayloadTypeSet{true}});
+  std::vector<MyCommands> out = battle.RequestCommands(requests);
+  return MySched{out};
+}
+
 auto main() -> int {
   try {
 
@@ -251,6 +261,7 @@ auto main() -> int {
     bs.SetActionTranslator(default_translator);
     bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
     bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+    bs.SetScheduleGenerator(schedule_generator);
 
     auto winners = bs.RunBattle(b);
     std::cout << "Winner: Player " << winners.at(0) + 1 << "\n";
@@ -276,6 +287,7 @@ void test_battle_end() {
   bs.SetActionTranslator(default_translator);
   bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
   bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+  bs.SetScheduleGenerator(schedule_generator);
 
   auto winners = bs.RunBattle(b);
 
@@ -297,6 +309,7 @@ void test_user_event() {
   bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
   bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
   bs.SetHandler<int>(default_intevent);
+  bs.SetScheduleGenerator(schedule_generator);
 
   auto winners = bs.RunBattle(b);
 

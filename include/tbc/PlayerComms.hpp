@@ -24,7 +24,7 @@ public:
   [[nodiscard]] std::future<std::vector<TPayload>> RequestCommands(const TPayloadTypeSet &types) { return std::async(std::launch::async, request_handler_, types); }
 
   void SetResponseHandler(const TCommandResponseHandler &handler) { response_handler_ = handler; }
-  void RequestCommandsResponse(const TCommandResult &res) const {
+  void RespondToCommands(const TCommandResult &res) const {
     if (response_handler_) {
       response_handler_(res);
     }
