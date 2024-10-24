@@ -21,7 +21,6 @@
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Slot.h"
 #include "tbc/Target.hpp"
-#include "tbc/Turn.hpp"
 #include "tbc/UserEffect.hpp"
 
 #include "tbc/BattleTypes.hpp"
@@ -206,7 +205,7 @@ ngl::tbc::Layout default_layout() {
   }};
 }
 
-MySched schedule_generator(MyBattle &battle, [[maybe_unused]] std::size_t turn) {
+MySched schedule_generator(MyBattle &battle, [[maybe_unused]] const std::vector<MyCommands> &commands, [[maybe_unused]] std::size_t turn) {
   std::vector<MyBattleTypes::TCommandRequest> requests;
   requests.push_back(MyBattleTypes::TCommandRequest{0, MyBattleTypes::TCommandPayloadTypeSet{true}});
   requests.push_back(MyBattleTypes::TCommandRequest{1, MyBattleTypes::TCommandPayloadTypeSet{true}});

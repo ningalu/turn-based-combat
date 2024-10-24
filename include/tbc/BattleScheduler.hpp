@@ -18,7 +18,6 @@
 #include "tbc/Effect.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerCommandRequest.hpp"
-#include "tbc/Turn.hpp"
 
 namespace ngl::tbc {
 
@@ -28,12 +27,11 @@ class BattleScheduler {
   using TBattle         = Battle<TState, TCommand, TCommandResult>;
   using TSchedule       = typename TBattle::Schedule;
   using TAction         = Action<TBattle, TEvents, TCommand>;
-  using TTurn           = Turn<TBattle, TEvents, TCommand>;
 
   using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
-  using TScheduleGenerator = std::function<TSchedule(TBattle &, std::size_t)>;
+  using TScheduleGenerator = std::function<TSchedule(TBattle &, const std::vector<TCommand> &, std::size_t)>;
 
 public:
   template <typename TSpecificEvent>
@@ -60,9 +58,9 @@ public:
   }
 
   void SetScheduleGenerator(TScheduleGenerator generator) { schedule_generator_ = std::move(generator); }
-  [[nodiscard]] TSchedule GenerateSchedule(TBattle &battle, std::size_t turn) {
+  [[nodiscard]] TSchedule GenerateSchedule(TBattle &battle, const std::vector<TCommand> &buffered_commands, std::size_t turn) {
     assert(schedule_generator_);
-    return schedule_generator_(battle, turn);
+    return schedule_generator_(battle, buffered_commands, turn);
   }
 
   void SetActionTranslator(const TActionTranslator &translator) {
@@ -93,7 +91,27 @@ public:
     return check_battle_ended_(battle);
   }
 
-  void RunTurn([[maybe_unused]] TTurn turn, TBattle &battle) {
+  [[nodiscard]] std::vector<std::size_t> RunBattle(TBattle &battle) {
+    for (std::size_t i = 0; !battle.HasEnded(); i++) {
+      std::cout << "Start turn " << i + 1 << "\n";
+
+      battle.InitTurn(GenerateSchedule(battle, battle.queued_commands.empty() ? std::vector<TCommand>{} : battle.queued_commands.at(0), i));
+
+      if (i == 0) {
+        auto event_action = PostEvent(DefaultEvents::BattleStart{}, battle);
+        if (event_action.has_value()) {
+          for (const auto &action : event_action.value()) {
+            ResolveAction(action, battle);
+          }
+        }
+      }
+      RunTurn(battle);
+    }
+
+    return battle.GetWinners();
+  }
+
+  void RunTurn(TBattle &battle) {
     auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({}, battle);
     if (pre_turn.has_value()) {
       for (const auto &action : pre_turn.value()) {
@@ -131,26 +149,6 @@ public:
     }
   }
 
-  [[nodiscard]] std::vector<std::size_t> RunBattle(TBattle &battle) {
-    for (std::size_t i = 0; !battle.HasEnded(); i++) {
-      std::cout << "Start turn " << i + 1 << "\n";
-
-      battle.InitTurn(GenerateSchedule(battle, i));
-
-      Turn<TBattle, TEvents, TCommand> turn;
-      if (i == 0) {
-        auto event_action = PostEvent(DefaultEvents::BattleStart{}, battle);
-        if (event_action.has_value()) {
-          turn.AddDynamicActions(event_action.value());
-        }
-      }
-      RunTurn(turn, battle);
-    }
-
-    return battle.GetWinners();
-  }
-
-protected:
   void ResolveAction(const TAction &action, TBattle &battle, std::size_t max_depth = 100) {
     std::stack<TAction> to_resolve;
     to_resolve.push(action);
@@ -210,111 +208,7 @@ protected:
     }
   }
 
-  [[nodiscard]] bool ApplyActionUntilInterrupted(TAction &action, TTurn &turn, TBattle &battle) {
-    const auto timeout = 100;
-    for (std::size_t i = 0; i < timeout; i++) {
-
-      const auto result = action.ApplyNext(battle);
-
-      if (!result.has_value()) {
-        // Action ran to completion
-        return false;
-      }
-
-      [[maybe_unused]] auto &[status, winners, commands, events] = result.value();
-
-      if (status == EffectResult::Status::STOP) {
-        action.Cancel();
-      }
-
-      // if the effect caused the battle to end, report an interruption immediately
-      // battle ending can sometimes still require effects to continue to be applied? TODO: research
-      if (!winners.winners.empty()) {
-        battle.EndBattle(winners.winners);
-        return false;
-      }
-
-      const auto manual_winner_check = CheckBattleEnded(battle);
-      if (manual_winner_check.has_value()) {
-        battle.EndBattle(manual_winner_check.value());
-        return false;
-      }
-
-      std::vector<TAction> new_dynamic_actions = TranslateActions(commands, battle);
-      for (const auto &event : events.events) {
-        const auto event_action = PostEvent(event, battle);
-        if (event_action.has_value()) {
-          const auto &event_action_values = event_action.value();
-          new_dynamic_actions.insert(new_dynamic_actions.begin(), event_action_values.begin(), event_action_values.end());
-        }
-      }
-
-      if (!new_dynamic_actions.empty()) {
-        turn.AddDynamicActions(new_dynamic_actions);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  [[nodiscard]] bool RunTurnUntilInterrupted(TTurn &turn, TBattle &battle) {
-    auto &queued_commands = battle.current_turn_commands;
-
-    while (!turn.dynamic_actions.empty()) {
-      while (ApplyActionUntilInterrupted(turn.dynamic_actions.at(0), turn, battle)) {
-        if (battle.HasEnded()) {
-          return true;
-        }
-      }
-      turn.dynamic_actions.erase(turn.dynamic_actions.begin());
-    }
-
-    if (!queued_commands.dynamic_commands.empty()) {
-      const auto queued_dynamic_command = queued_commands.dynamic_commands.at(0);
-      queued_commands.dynamic_commands.erase(queued_commands.dynamic_commands.begin());
-
-      auto queued_dynamic_action = TranslateAction(queued_dynamic_command, battle);
-      turn.AddDynamicAction(queued_dynamic_action);
-      return true;
-    }
-
-    while (!turn.static_actions.empty()) {
-      while (ApplyActionUntilInterrupted(turn.static_actions.at(0), turn, battle)) {
-        if (battle.HasEnded()) {
-          return true;
-        }
-
-        if (!queued_commands.dynamic_commands.empty()) {
-          return true;
-        }
-
-        if (!turn.dynamic_actions.empty()) {
-          return true;
-        }
-      }
-      turn.static_actions.erase(turn.static_actions.begin());
-      const auto static_action_end_result = PostEvent<DefaultEvents::StaticActionEnd>({}, battle);
-      if (static_action_end_result.has_value()) {
-        const auto &static_action_end_actions = static_action_end_result.value();
-        if (!static_action_end_actions.empty()) {
-          turn.AddDynamicActions(static_action_end_actions);
-          return true;
-        }
-      }
-    }
-
-    if (!queued_commands.static_commands.empty()) {
-      const auto queued_static_command = queued_commands.static_commands.at(0);
-      queued_commands.static_commands.erase(queued_commands.static_commands.begin());
-
-      auto queued_static_action = TranslateAction(queued_static_command, battle);
-      turn.AddStaticAction(queued_static_action);
-      return true;
-    }
-
-    return false;
-  }
-
+protected:
   EventHandler<TBattle, TCommand, TEvents> event_handlers_;
 
   TScheduleGenerator schedule_generator_;

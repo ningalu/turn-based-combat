@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "tbc/Command.hpp"
-#include "tbc/CommandQueue.hpp"
 #include "tbc/Comms.hpp"
 #include "tbc/Layout.h"
 #include "tbc/Log.h"
@@ -60,9 +59,9 @@ public:
       : Battle{{}, comms, layout} {}
 
   TState state;
+  // TODO: can you queue anything other than commands?
   std::vector<std::vector<TCommand>> queued_commands;
   Schedule current_turn_schedule;
-  CommandQueue<TCommand> current_turn_commands;
 
   [[nodiscard]] const Layout &layout() const {
     return layout_;
