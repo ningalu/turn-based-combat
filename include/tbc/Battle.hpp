@@ -25,6 +25,7 @@ class Battle {
   using TBattle                = Battle<TState, TCommand, TCommandResult>;
   using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
+  using TPlayerCommandRequest  = PlayerCommandRequest<TCommand>;
 
   using TCommandPayload          = typename TCommand::Payload;
   using TCommandValidator        = std::function<std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
@@ -102,14 +103,25 @@ public:
   }
 
   [[nodiscard]] std::vector<TCommand> RequestCommands(
-    const std::vector<PlayerCommandRequest<TCommand>> &players,
+    const std::vector<std::size_t> &players,
+    std::size_t attempts = 1
+  ) {
+    std::vector<TPlayerCommandRequest> requests;
+    for (const auto player : players) {
+      requests.push_back({player, TCommandPayloadTypeSet{true}});
+    }
+    return RequestCommands(requests, nullptr, attempts);
+  }
+
+  [[nodiscard]] std::vector<TCommand> RequestCommands(
+    const std::vector<TPlayerCommandRequest> &players,
     std::size_t attempts
   ) {
     return RequestCommands(players, nullptr, attempts);
   }
 
   [[nodiscard]] std::vector<TCommand> RequestCommands(
-    const std::vector<PlayerCommandRequest<TCommand>> &players,
+    const std::vector<TPlayerCommandRequest> &players,
     TCommandValidator validator = nullptr,
     std::size_t attempts        = 1
   ) {

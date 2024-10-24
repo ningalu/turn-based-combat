@@ -206,10 +206,11 @@ ngl::tbc::Layout default_layout() {
 }
 
 MySched schedule_generator(MyBattle &battle, [[maybe_unused]] const std::vector<MyCommands> &commands, [[maybe_unused]] std::size_t turn) {
-  std::vector<MyBattleTypes::TCommandRequest> requests;
-  requests.push_back(MyBattleTypes::TCommandRequest{0, MyBattleTypes::TCommandPayloadTypeSet{true}});
-  requests.push_back(MyBattleTypes::TCommandRequest{1, MyBattleTypes::TCommandPayloadTypeSet{true}});
-  std::vector<MyCommands> out = battle.RequestCommands(requests);
+  // std::vector<MyBattleTypes::TCommandRequest> requests;
+  // requests.push_back(MyBattleTypes::TCommandRequest{0, MyBattleTypes::TCommandPayloadTypeSet{true}});
+  // requests.push_back(MyBattleTypes::TCommandRequest{1, MyBattleTypes::TCommandPayloadTypeSet{true}});
+  // std::vector<MyCommands> out = battle.RequestCommands(requests);
+  std::vector<MyCommands> out = battle.RequestCommands(std::vector<std::size_t>{{0, 1}});
   return MySched{out};
 }
 
