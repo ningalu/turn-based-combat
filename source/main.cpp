@@ -186,7 +186,7 @@ auto int_event_translator = [](const MyCommands &command, [[maybe_unused]] const
   return GetActionWithIntEffect({command.player, 0}, {}, move);
 };
 
-std::vector<MyAction> default_turnend([[maybe_unused]] ngl::tbc::DefaultEvents::TurnsEnd unused1, [[maybe_unused]] const MyBattle &unused2) {
+std::vector<MyAction> default_turnend([[maybe_unused]] ngl::tbc::DefaultEvents::TurnEnd unused1, [[maybe_unused]] const MyBattle &unused2) {
   return {MyAction{std::vector<MyDefEffect>{MyDefEffect{resolve_rps_effect(), {}}}}};
 }
 
@@ -259,7 +259,7 @@ auto main() -> int {
     MyScheduler bs;
     bs.SetActionTranslator(default_translator);
     bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
-    bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+    bs.SetHandler<ngl::tbc::DefaultEvents::TurnEnd>(default_turnend);
     bs.SetScheduleGenerator(schedule_generator);
 
     auto winners = bs.RunBattle(b);
@@ -285,7 +285,7 @@ void test_battle_end() {
   MyScheduler bs;
   bs.SetActionTranslator(default_translator);
   bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
-  bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+  bs.SetHandler<ngl::tbc::DefaultEvents::TurnEnd>(default_turnend);
   bs.SetScheduleGenerator(schedule_generator);
 
   auto winners = bs.RunBattle(b);
@@ -306,7 +306,7 @@ void test_user_event() {
   MyScheduler bs;
   bs.SetActionTranslator(int_event_translator);
   bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
-  bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+  bs.SetHandler<ngl::tbc::DefaultEvents::TurnEnd>(default_turnend);
   bs.SetHandler<int>(default_intevent);
   bs.SetScheduleGenerator(schedule_generator);
 

@@ -171,28 +171,6 @@ public:
     current_turn_schedule = schedule;
   }
 
-  // void StartTurn(const std::vector<PlayerCommandRequest<TCommand>> &scheduled_command_requests) {
-  //   current_turn_commands.ClearCommands();
-  //   current_turn_schedule.order.clear();
-
-  //   if (!queued_commands.empty()) {
-  //     current_turn_commands.static_commands = std::move(queued_commands.at(0));
-  //     queued_commands.erase(queued_commands.begin());
-  //   }
-
-  //   const auto scheduled_commands = RequestCommands(scheduled_command_requests);
-  //   current_turn_commands.Merge({{}, scheduled_commands});
-  // }
-
-  // void StartTurn() {
-  //   current_turn_commands.ClearCommands();
-
-  //   if (!queued_commands.empty()) {
-  //     current_turn_commands.static_commands = std::move(queued_commands.at(0));
-  //     queued_commands.erase(queued_commands.begin());
-  //   }
-  // }
-
   void EndBattle(const std::vector<std::size_t> &winners) {
     winner_indices_ = winners;
   }

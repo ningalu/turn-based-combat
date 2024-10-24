@@ -57,6 +57,20 @@ public:
                       event.payload);
   }
 
+  // should only really be used for statically known event timings, since dynamically posted events need to be scheduled
+  template <typename TSpecificEvent>
+  void ResolveEvent(const TSpecificEvent &event, TBattle &battle) {
+    const auto actions = PostEvent(event, battle);
+    if (actions.has_value()) {
+      for (const auto &action : actions.value()) {
+        ResolveAction(action, battle);
+        if (battle.HasEnded()) {
+          return;
+        }
+      }
+    }
+  }
+
   void SetScheduleGenerator(TScheduleGenerator generator) { schedule_generator_ = std::move(generator); }
   [[nodiscard]] TSchedule GenerateSchedule(TBattle &battle, const std::vector<TCommand> &buffered_commands, std::size_t turn) {
     assert(schedule_generator_);
@@ -112,12 +126,7 @@ public:
   }
 
   void RunTurn(TBattle &battle) {
-    auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({}, battle);
-    if (pre_turn.has_value()) {
-      for (const auto &action : pre_turn.value()) {
-        ResolveAction(action, battle);
-      }
-    }
+    ResolveEvent<DefaultEvents::TurnStart>({}, battle);
 
     while (!battle.current_turn_schedule.Empty()) {
       const auto actionable = battle.current_turn_schedule.order.at(0);
@@ -140,12 +149,7 @@ public:
 
     // TODO: temp, figure out how to control post battle effects
     if (!battle.HasEnded()) {
-      auto post_turn = PostEvent<DefaultEvents::TurnsEnd>({}, battle);
-      if (post_turn.has_value()) {
-        for (const auto &action : post_turn.value()) {
-          ResolveAction(action, battle);
-        }
-      }
+      ResolveEvent<DefaultEvents::TurnEnd>({}, battle);
     }
   }
 

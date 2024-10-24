@@ -11,8 +11,8 @@ struct BattleEnd {
   std::vector<std::size_t> winners;
 };
 
-struct TurnsStart {};
-struct TurnsEnd {};
+struct TurnStart {};
+struct TurnEnd {};
 
 struct StaticActionStart {};
 struct StaticActionEnd {};
@@ -32,8 +32,8 @@ struct Event {
   using Detail = detail::EventDetail<
     DefaultEvents::BattleStart,
     DefaultEvents::BattleEnd,
-    DefaultEvents::TurnsStart,
-    DefaultEvents::TurnsEnd,
+    DefaultEvents::TurnStart,
+    DefaultEvents::TurnEnd,
     DefaultEvents::StaticActionStart,
     DefaultEvents::StaticActionEnd,
     TUserPayloads...>;
