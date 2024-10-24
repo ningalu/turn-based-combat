@@ -14,29 +14,11 @@
 #include "tbc/Command.hpp"
 #include "tbc/CommandQueue.hpp"
 #include "tbc/Layout.h"
+#include "tbc/Log.h"
 #include "tbc/PlayerCommandRequest.hpp"
 #include "tbc/PlayerComms.hpp"
 
 namespace ngl::tbc {
-struct BattleLog {
-  explicit BattleLog(std::size_t num_players);
-  BattleLog(std::size_t num_players, const std::string &default_message);
-
-  void Insert(std::size_t player, const std::string &message);
-  void Insert(const std::unordered_set<std::size_t> &players, const std::string &message);
-  void Insert(std::nullopt_t spectator, const std::string &message);
-  void Insert(std::optional<std::size_t> spectator, const std::string &message);
-  void Insert(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message);
-
-  [[nodiscard]] std::optional<const std::string *> Retrieve(std::size_t player) const;
-  [[nodiscard]] std::optional<const std::string *> Retrieve(std::nullopt_t spectator) const;
-
-  void Clear(std::size_t player);
-  void Clear(std::nullopt_t spectator);
-
-  std::unordered_map<std::optional<std::size_t>, const std::string *> distribution;
-  std::unordered_set<std::string> messages;
-};
 
 template <typename TState, typename TCommand, typename TCommandResult>
 class Battle {
@@ -52,7 +34,11 @@ class Battle {
   using TLogHandler = typename TPlayerComms::TLogHandler;
 
 public:
-  using Log = BattleLog;
+  using Actionable = std::variant<TCommand, std::size_t, std::function<std::size_t(const TBattle &)>>;
+
+  struct Schedule {
+    std::vector<std::vector<Actionable>> order;
+  };
 
   Battle(const TState &state_, std::size_t seed, std::vector<TPlayerComms> comms, Layout layout)
       : state{state_}, seed_{seed}, comms_{std::move(comms)}, layout_{std::move(layout)} {}
@@ -62,6 +48,7 @@ public:
 
   TState state;
   std::vector<std::vector<TCommand>> queued_commands;
+  Schedule current_turn_schedule;
   CommandQueue<TCommand> current_turn_commands;
 
   [[nodiscard]] const Layout &layout() const {
@@ -140,7 +127,7 @@ public:
     return RequestCommands(players, nullptr, attempts);
   }
 
-  [[nodiscard]] CommandQueue<TCommand> RequestCommands(
+  [[nodiscard]] std::vector<TCommand> RequestCommands(
     const std::vector<PlayerCommandRequest<TCommand>> &players,
     TCommandValidator validator = nullptr,
     std::size_t attempts        = 1
@@ -208,7 +195,7 @@ public:
       auto val = response.get();
       actions.insert(actions.end(), val.begin(), val.end());
     }
-    return {{}, actions};
+    return actions;
   }
 
   void BufferCommand(const TCommand &c, std::size_t turns_ahead) {
@@ -238,7 +225,16 @@ public:
     // }();
 
     const auto scheduled_commands = RequestCommands(scheduled_command_requests);
-    current_turn_commands.Merge(scheduled_commands);
+    current_turn_commands.Merge({{}, scheduled_commands});
+  }
+
+  void StartTurn() {
+    current_turn_commands.ClearCommands();
+
+    if (!queued_commands.empty()) {
+      current_turn_commands.static_commands = std::move(queued_commands.at(0));
+      queued_commands.erase(queued_commands.begin());
+    }
   }
 
   void EndBattle(const std::vector<std::size_t> &winners) {

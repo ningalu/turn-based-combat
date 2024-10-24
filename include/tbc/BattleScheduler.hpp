@@ -9,6 +9,8 @@
 #include <optional>
 #include <vector>
 
+#include "util/tmp.hpp"
+
 #include "tbc/Action.hpp"
 #include "tbc/Battle.hpp"
 #include "tbc/Command.hpp"
@@ -18,7 +20,18 @@
 #include "tbc/Turn.hpp"
 
 namespace ngl::tbc {
-template <typename TState, typename TCommand, typename TCommandResult, typename TEvents>
+
+template <typename TCommand>
+struct ScheduledCommands {
+  std::vector<PlayerCommandRequest<TCommand>> players;
+};
+
+struct ImmediateCommands {
+  std::vector<std::size_t> players;
+};
+
+template <typename TState, typename TCommand, typename TCommandResult, typename TEvents, typename TCommandRequestStrategy>
+  requires(tmp::is_present_v<TCommandRequestStrategy, ScheduledCommands<TCommand>, ImmediateCommands>)
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
   using TBattle         = Battle<TState, TCommand, TCommandResult>;
@@ -28,7 +41,11 @@ class BattleScheduler {
   using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
+  using TCommandRequestStrategyHandler = std::function<TCommandRequestStrategy(const TBattle &)>;
+
 public:
+  TCommandRequestStrategyHandler CommandRequestStrategyHandler;
+
   template <typename TSpecificEvent>
   void SetHandler(std::function<std::vector<TAction>(TSpecificEvent, TBattle &)> handler) {
     event_handlers_.template RegisterHandler<TSpecificEvent>(handler);
@@ -81,6 +98,7 @@ public:
   }
 
   void RunTurn(Turn<TBattle, TEvents, TCommand> turn, TBattle &b) {
+
     auto pre_turn = PostEvent<DefaultEvents::TurnsStart>({}, b);
     if (pre_turn.has_value()) {
       turn.AddDynamicActions(pre_turn.value());
@@ -110,24 +128,35 @@ public:
   }
 
   [[nodiscard]] std::vector<std::size_t> RunBattle(TBattle &battle) {
-    const auto player_indices = [&]() {
-      std::vector<std::size_t> out(battle.PlayerCount());
-      std::iota(out.begin(), out.end(), std::size_t{0});
-      return out;
-    }();
-
     for (std::size_t i = 0; !battle.HasEnded(); i++) {
       std::cout << "Start turn " << i + 1 << "\n";
 
-      std::vector<PlayerCommandRequest<TCommand>> requests;
-      for (std::size_t player = 0; player < battle.PlayerCount(); player++) {
-        requests.push_back(
-          PlayerCommandRequest<TCommand>{player, battle.GetValidTurnStartCommands(player)}
-        );
+      if constexpr (std::is_same_v<TCommandRequestStrategy, ScheduledCommands<TCommand>>) {
+
+        std::vector<PlayerCommandRequest<TCommand>> requests;
+        if (CommandRequestStrategyHandler) {
+          requests = CommandRequestStrategyHandler(battle).players;
+        } else {
+          for (std::size_t player = 0; player < battle.PlayerCount(); player++) {
+            requests.push_back(
+              PlayerCommandRequest<TCommand>{player, battle.GetValidTurnStartCommands(player)}
+            );
+          }
+        }
+
+        battle.StartTurn(requests);
+        battle.current_turn_commands.static_commands = battle.OrderCommands(battle.current_turn_commands.static_commands);
+      } else {
+        if (CommandRequestStrategyHandler) {
+          remaining_immediate_commands_ = CommandRequestStrategyHandler(battle).players;
+        } else {
+          for (std::size_t player = 0; player < battle.PlayerCount(); player++) {
+            remaining_immediate_commands_.push_back(i);
+          }
+        }
+        battle.StartTurn();
       }
 
-      battle.StartTurn(requests);
-      battle.current_turn_commands.static_commands = battle.OrderCommands(battle.current_turn_commands.static_commands);
       Turn<TBattle, TEvents, TCommand> turn;
       if (i == 0) {
         auto event_action = PostEvent(DefaultEvents::BattleStart{}, battle);
@@ -244,6 +273,19 @@ protected:
       return true;
     }
 
+    // TODO: replace this if constexpr stuff and implement a Schedule that contains Actionable objects
+    // using Schedule = std::vector<std::vector<Action | Command | PlayerIndex | ActionablePlayerQuery()>>
+    if constexpr (std::is_same_v<TCommandRequestStrategy, ImmediateCommands>) {
+      if (!remaining_immediate_commands_.empty()) {
+
+        const auto commands = battle.RequestCommands({remaining_immediate_commands_});
+        if (!commands.empty()) {
+          turn.AddStaticActions(commands);
+          return true;
+        }
+      }
+    }
+
     return false;
   }
 
@@ -251,6 +293,9 @@ protected:
 
   TActionTranslator action_translator_;
   TBattleEndChecker check_battle_ended_;
+
+  // TODO: conditionally remove this variable depending on the command request strategy
+  std::vector<std::size_t> remaining_immediate_commands_;
 };
 } // namespace ngl::tbc
 
