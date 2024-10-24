@@ -2,6 +2,7 @@
 #define TBC_LOG_H
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -10,6 +11,8 @@
 
 namespace ngl::tbc {
 struct Log {
+  using Handler = std::function<void(const std::string &)>;
+
   explicit Log(std::size_t num_players);
   Log(std::size_t num_players, const std::string &default_message);
 

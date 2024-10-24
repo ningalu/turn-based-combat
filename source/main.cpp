@@ -244,7 +244,7 @@ auto main() -> int {
 
     std::vector<MyComms> players({p1, p2});
 
-    auto b = MyBattle{0, players, default_layout()};
+    auto b = MyBattle{players, default_layout()};
     b.SetCommandValidator(default_validator);
 
     MyScheduler bs;
@@ -269,7 +269,7 @@ void test_battle_end() {
 
   std::vector<MyComms> players({p1, p2});
 
-  auto b = MyBattle{0, players, default_layout()};
+  auto b = MyBattle{players, default_layout()};
   b.SetCommandValidator(default_validator);
 
   MyScheduler bs;
@@ -289,7 +289,7 @@ void test_user_event() {
 
   std::vector<MyComms> players({p1, p2});
 
-  auto b = MyBattle{0, players, default_layout()};
+  auto b = MyBattle{players, default_layout()};
   b.SetCommandValidator(default_validator);
 
   MyScheduler bs;
