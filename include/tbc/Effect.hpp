@@ -28,6 +28,7 @@ struct Events {
 };
 
 template <typename TEvents, typename TCommands>
+// TODO: are events actionable? i think so? that would solve the issue of buffered commands/event queue order
 using Result = std::tuple<Status, Winners, std::vector<TCommands>, Events<TEvents>>;
 } // namespace EffectResult
 

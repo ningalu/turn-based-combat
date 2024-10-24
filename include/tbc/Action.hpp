@@ -15,11 +15,11 @@ namespace ngl::tbc {
 template <typename TBattle, typename TEvents, typename TCommands>
 class Action {
 public:
-  using Result = typename Effect<TBattle, TEvents, TCommands>::Result;
+  using Result   = typename Effect<TBattle, TEvents, TCommands>::Result;
+  using Deferred = std::variant<DeferredEffect<TBattle, TEvents, TCommands>, DeferredUserEffect<TBattle, TEvents, TCommands>>;
 
 protected:
   using TAction    = Action<TBattle, TEvents, TCommands>;
-  using Deferred   = std::variant<DeferredEffect<TBattle, TEvents, TCommands>, DeferredUserEffect<TBattle, TEvents, TCommands>>;
   using TDecorator = std::function<Result(TBattle &)>;
 
   template <typename T>

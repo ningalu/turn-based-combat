@@ -12,57 +12,57 @@
 #include <vector>
 
 #include "tbc/Command.hpp"
-#include "tbc/CommandQueue.hpp"
+#include "tbc/Comms.hpp"
 #include "tbc/Layout.h"
+#include "tbc/Log.h"
 #include "tbc/PlayerCommandRequest.hpp"
 #include "tbc/PlayerComms.hpp"
 
 namespace ngl::tbc {
-struct BattleLog {
-  explicit BattleLog(std::size_t num_players);
-  BattleLog(std::size_t num_players, const std::string &default_message);
-
-  void Insert(std::size_t player, const std::string &message);
-  void Insert(const std::unordered_set<std::size_t> &players, const std::string &message);
-  void Insert(std::nullopt_t spectator, const std::string &message);
-  void Insert(std::optional<std::size_t> spectator, const std::string &message);
-  void Insert(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message);
-
-  [[nodiscard]] std::optional<const std::string *> Retrieve(std::size_t player) const;
-  [[nodiscard]] std::optional<const std::string *> Retrieve(std::nullopt_t spectator) const;
-
-  void Clear(std::size_t player);
-  void Clear(std::nullopt_t spectator);
-
-  std::unordered_map<std::optional<std::size_t>, const std::string *> distribution;
-  std::unordered_set<std::string> messages;
-};
 
 template <typename TState, typename TCommand, typename TCommandResult>
 class Battle {
   using TBattle                = Battle<TState, TCommand, TCommandResult>;
   using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
+  using TPlayerCommandRequest  = PlayerCommandRequest<TCommand>;
 
   using TCommandPayload          = typename TCommand::Payload;
   using TCommandValidator        = std::function<std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
   using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
-  using TLogHandler = typename TPlayerComms::TLogHandler;
-
 public:
-  using Log = BattleLog;
+  // is an event actionable? probably right?
+  using Actionable = std::variant<TCommand, std::size_t, std::function<std::size_t(const TBattle &)>>;
 
-  Battle(const TState &state_, std::size_t seed, std::vector<TPlayerComms> comms, Layout layout)
-      : state{state_}, seed_{seed}, comms_{std::move(comms)}, layout_{std::move(layout)} {}
+  struct Schedule {
+    std::vector<std::vector<Actionable>> order;
+    Schedule() = default;
+    Schedule(std::vector<TCommand> commands) {
+      for (const auto &command : commands) {
+        order.push_back(std::vector<Actionable>{Actionable{command}});
+      }
+    }
+    [[nodiscard]] bool Empty() const {
+      return order.empty();
+    }
+    void Next() {
+      assert(!Empty());
+      order.erase(order.begin());
+    }
+  };
 
-  Battle(std::size_t seed, const std::vector<TPlayerComms> &comms, const Layout &layout)
-      : Battle{{}, seed, comms, layout} {}
+  Battle(const TState &state_, std::vector<TPlayerComms> comms, Layout layout)
+      : state{state_}, comms_{std::move(comms)}, layout_{std::move(layout)} {}
+
+  Battle(const std::vector<TPlayerComms> &comms, const Layout &layout)
+      : Battle{{}, comms, layout} {}
 
   TState state;
+  // TODO: can you queue anything other than commands?
   std::vector<std::vector<TCommand>> queued_commands;
-  CommandQueue<TCommand> current_turn_commands;
+  Schedule current_turn_schedule;
 
   [[nodiscard]] const Layout &layout() const {
     return layout_;
@@ -73,38 +73,7 @@ public:
   }
 
   [[nodiscard]] std::size_t PlayerCount() const {
-    return comms_.size();
-  }
-
-  void SetSpectatorLogHandler(TLogHandler handler) { spectator_log_output_ = handler; }
-
-  void SetPlayerLogHandler(std::size_t player, TLogHandler handler) {
-    if (player >= comms_.size()) {
-      throw std::out_of_range{"Assigning Log handler to invalid player index: " + std::to_string(player)};
-    }
-    comms_.at(player).SetLogHandler(handler);
-  }
-
-  void SetMasterLogHandler(TLogHandler handler) { master_log_output_ = handler; }
-
-  void PostLog(const std::string &message) {
-    log_buffer_.push_back(Log{comms_.size(), message});
-  }
-
-  void PostLog(std::optional<std::size_t> player, const std::string &message) {
-    Log log{comms_.size()};
-    log.Insert(player, message);
-    log_buffer_.push_back(log);
-  }
-
-  void PostLog(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message) {
-    Log log{comms_.size()};
-    log.Insert(players, message);
-    log_buffer_.push_back(log);
-  }
-
-  void PostLog(const Log &log) {
-    log_buffer_.push_back(log);
+    return comms_.PlayerCount();
   }
 
   void SetCommandValidator(const TCommandValidator &validator) {
@@ -134,40 +103,36 @@ public:
   }
 
   [[nodiscard]] std::vector<TCommand> RequestCommands(
-    const std::vector<PlayerCommandRequest<TCommand>> &players,
+    const std::vector<std::size_t> &players,
+    std::size_t attempts = 1
+  ) {
+    std::vector<TPlayerCommandRequest> requests;
+    for (const auto player : players) {
+      requests.push_back({player, TCommandPayloadTypeSet{true}});
+    }
+    return RequestCommands(requests, nullptr, attempts);
+  }
+
+  [[nodiscard]] std::vector<TCommand> RequestCommands(
+    const std::vector<TPlayerCommandRequest> &players,
     std::size_t attempts
   ) {
     return RequestCommands(players, nullptr, attempts);
   }
 
-  [[nodiscard]] CommandQueue<TCommand> RequestCommands(
-    const std::vector<PlayerCommandRequest<TCommand>> &players,
+  [[nodiscard]] std::vector<TCommand> RequestCommands(
+    const std::vector<TPlayerCommandRequest> &players,
     TCommandValidator validator = nullptr,
     std::size_t attempts        = 1
   ) {
-    // TODO: post logs asynchronously
-    for (const auto &log : log_buffer_) {
-      for (std::size_t i = 0; i < comms_.size(); i++) {
-        const auto message = log.Retrieve(i);
-        if (message.has_value()) {
-          comms_.at(i).PostLog(*message.value());
-        }
-      }
-      const auto spectator_message = log.Retrieve(std::nullopt);
-      if (spectator_message.has_value()) {
-        spectator_log_output_(*spectator_message.value());
-      }
-      log_buffer_.erase(log_buffer_.begin());
-    }
+    comms_.Flush();
 
     std::vector<std::future<std::vector<TCommand>>> action_handles;
-
     // Clang cant capture structured bindings in closures????????? Are they stupid?????????????????????????????????????
     for (const auto &request : players) {
-      const auto &player         = request.player;
+      const auto &player = request.player;
+      assert(comms_.PlayerCount() > player);
       const auto &valid_commands = request.valid_commands;
-
-      assert(comms_.size() > player);
 
       // Async poll each player for static commands, rejecting and repolling if any are invalid
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
@@ -175,17 +140,11 @@ public:
         TCommandResult result;
 
         for (std::size_t i = 0; i < attempts; i++) {
-          const auto incoming_payloads = comms_.at(player).RequestCommands(valid_commands).get();
-          if (validator) {
-            auto validation_result = validator(player, incoming_payloads, *this);
-            payloads               = validation_result.first;
-            result                 = validation_result.second;
-          } else {
-            auto validation_result = ValidateCommands(player, incoming_payloads);
-            payloads               = validation_result.first;
-            result                 = validation_result.second;
-          }
-          comms_.at(player).RequestCommandsResponse(result);
+          const auto incoming_payloads = comms_.players.at(player).RequestCommands(valid_commands).get();
+          auto validation_result       = validator ? validator(player, incoming_payloads, *this) : ValidateCommands(player, incoming_payloads);
+          payloads                     = validation_result.first;
+          result                       = validation_result.second;
+          comms_.players.at(player).RespondToCommands(result);
           if (payloads.has_value()) {
             break;
           }
@@ -208,7 +167,7 @@ public:
       auto val = response.get();
       actions.insert(actions.end(), val.begin(), val.end());
     }
-    return {{}, actions};
+    return actions;
   }
 
   void BufferCommand(const TCommand &c, std::size_t turns_ahead) {
@@ -220,25 +179,8 @@ public:
     queued_commands.at(turns_ahead).BufferCommand(c);
   }
 
-  void StartTurn(const std::vector<PlayerCommandRequest<TCommand>> &scheduled_command_requests) {
-    current_turn_commands.ClearCommands();
-
-    if (!queued_commands.empty()) {
-      current_turn_commands.static_commands = std::move(queued_commands.at(0));
-      queued_commands.erase(queued_commands.begin());
-    }
-
-    // const auto player_indices = [&, this]() {
-    //   std::vector<std::pair<std::size_t, TCommandPayloadTypeSet>> out(PlayerCount());
-    //   for (std::size_t i = 0; i < out.size(); i++) {
-    //     out.at(i).first  = i;
-    //     out.at(i).second = GetValidTurnStartCommands(i);
-    //   }
-    //   return out;
-    // }();
-
-    const auto scheduled_commands = RequestCommands(scheduled_command_requests);
-    current_turn_commands.Merge(scheduled_commands);
+  void InitTurn(const Schedule &schedule) {
+    current_turn_schedule = schedule;
   }
 
   void EndBattle(const std::vector<std::size_t> &winners) {
@@ -254,15 +196,11 @@ public:
   }
 
 protected:
-  std::size_t seed_;
+  Comms<TCommand, TCommandResult> comms_;
 
-  // std::queue? any reason to look at past logs?
-  std::vector<Log> log_buffer_;
-  TLogHandler master_log_output_;
-  std::vector<TPlayerComms> comms_;
-  TLogHandler spectator_log_output_;
-
+  // TODO: move to domain helpers
   Layout layout_;
+
   // TODO: refactor
   std::optional<std::vector<std::size_t>> winner_indices_;
 

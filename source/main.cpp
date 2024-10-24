@@ -21,7 +21,6 @@
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Slot.h"
 #include "tbc/Target.hpp"
-#include "tbc/Turn.hpp"
 #include "tbc/UserEffect.hpp"
 
 #include "tbc/BattleTypes.hpp"
@@ -56,6 +55,8 @@ using MyDefUserEffect = MyBattleTypes::TDeferredUserEffect;
 using MyResult = MyBattleTypes::TEffectResult;
 using MyCmdSet = MyBattleTypes::TCommandPayloadTypeSet;
 using MyComms  = MyBattleTypes::TPlayerComms;
+
+using MySched = MyBattleTypes::TSchedule;
 
 MyEffect DebugEffect(int n) {
   return MyEffect{[=]([[maybe_unused]] auto &&...whatever) {std::cout << "effect resolution: " << n << "\n"; return MyResult{}; }};
@@ -185,7 +186,7 @@ auto int_event_translator = [](const MyCommands &command, [[maybe_unused]] const
   return GetActionWithIntEffect({command.player, 0}, {}, move);
 };
 
-std::vector<MyAction> default_turnend([[maybe_unused]] ngl::tbc::DefaultEvents::TurnsEnd unused1, [[maybe_unused]] const MyBattle &unused2) {
+std::vector<MyAction> default_turnend([[maybe_unused]] ngl::tbc::DefaultEvents::TurnEnd unused1, [[maybe_unused]] const MyBattle &unused2) {
   return {MyAction{std::vector<MyDefEffect>{MyDefEffect{resolve_rps_effect(), {}}}}};
 }
 
@@ -202,6 +203,15 @@ ngl::tbc::Layout default_layout() {
     ngl::tbc::Side{std::vector<ngl::tbc::Slot>{ngl::tbc::Slot{0}}},
     ngl::tbc::Side{std::vector<ngl::tbc::Slot>{ngl::tbc::Slot{1}}}
   }};
+}
+
+MySched schedule_generator(MyBattle &battle, [[maybe_unused]] const std::vector<MyCommands> &commands, [[maybe_unused]] std::size_t turn) {
+  // std::vector<MyBattleTypes::TCommandRequest> requests;
+  // requests.push_back(MyBattleTypes::TCommandRequest{0, MyBattleTypes::TCommandPayloadTypeSet{true}});
+  // requests.push_back(MyBattleTypes::TCommandRequest{1, MyBattleTypes::TCommandPayloadTypeSet{true}});
+  // std::vector<MyCommands> out = battle.RequestCommands(requests);
+  std::vector<MyCommands> out = battle.RequestCommands(std::vector<std::size_t>{{0, 1}});
+  return MySched{out};
 }
 
 auto main() -> int {
@@ -244,13 +254,14 @@ auto main() -> int {
 
     std::vector<MyComms> players({p1, p2});
 
-    auto b = MyBattle{0, players, default_layout()};
+    auto b = MyBattle{players, default_layout()};
     b.SetCommandValidator(default_validator);
 
     MyScheduler bs;
     bs.SetActionTranslator(default_translator);
     bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
-    bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+    bs.SetHandler<ngl::tbc::DefaultEvents::TurnEnd>(default_turnend);
+    bs.SetScheduleGenerator(schedule_generator);
 
     auto winners = bs.RunBattle(b);
     std::cout << "Winner: Player " << winners.at(0) + 1 << "\n";
@@ -269,13 +280,14 @@ void test_battle_end() {
 
   std::vector<MyComms> players({p1, p2});
 
-  auto b = MyBattle{0, players, default_layout()};
+  auto b = MyBattle{players, default_layout()};
   b.SetCommandValidator(default_validator);
 
   MyScheduler bs;
   bs.SetActionTranslator(default_translator);
   bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
-  bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+  bs.SetHandler<ngl::tbc::DefaultEvents::TurnEnd>(default_turnend);
+  bs.SetScheduleGenerator(schedule_generator);
 
   auto winners = bs.RunBattle(b);
 
@@ -289,14 +301,15 @@ void test_user_event() {
 
   std::vector<MyComms> players({p1, p2});
 
-  auto b = MyBattle{0, players, default_layout()};
+  auto b = MyBattle{players, default_layout()};
   b.SetCommandValidator(default_validator);
 
   MyScheduler bs;
   bs.SetActionTranslator(int_event_translator);
   bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
-  bs.SetHandler<ngl::tbc::DefaultEvents::TurnsEnd>(default_turnend);
+  bs.SetHandler<ngl::tbc::DefaultEvents::TurnEnd>(default_turnend);
   bs.SetHandler<int>(default_intevent);
+  bs.SetScheduleGenerator(schedule_generator);
 
   auto winners = bs.RunBattle(b);
 

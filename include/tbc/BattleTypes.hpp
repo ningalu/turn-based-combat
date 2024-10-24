@@ -23,10 +23,12 @@ struct BattleTypes {
   using TCommandPayload        = typename TCommands::Payload;
   using TCommandPayloadTypeSet = typename TCommands::PayloadTypeSet;
   using TPlayerComms           = PlayerComms<TCommands, TCommandResult>;
+  using TCommandRequest        = PlayerCommandRequest<TCommands>;
 
   using TEventPayload = typename TEvents::Payload;
 
   using TBattle          = Battle<TBattleState, TCommands, TCommandResult>;
+  using TSchedule        = typename TBattle::Schedule;
   using TBattleScheduler = BattleScheduler<TBattleState, TCommands, TCommandResult, TEvents>;
 
   using TEventHandler = EventHandler<TBattle, TCommands, TEvents>;
