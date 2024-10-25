@@ -9,12 +9,12 @@
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
-template <typename TBattle, typename TEvents, typename TCommands>
+template <typename TBattle, typename TEvent, typename TCommands>
 class DeferredUserEffect {
-  using Result = typename UserEffect<TBattle, TEvents, TCommands>::Result;
+  using Result = typename UserEffect<TBattle, TEvent, TCommands>::Result;
 
 public:
-  DeferredUserEffect(Slot::Index user, UserEffect<TBattle, TEvents, TCommands> effect, std::vector<Target> targets) : user_{user}, effect_{std::move(effect)}, targets_{std::move(targets)} {}
+  DeferredUserEffect(Slot::Index user, UserEffect<TBattle, TEvent, TCommands> effect, std::vector<Target> targets) : user_{user}, effect_{std::move(effect)}, targets_{std::move(targets)} {}
 
   [[nodiscard]] Result Apply(TBattle &b) {
     return effect_.Apply(user_, b, targets_);
@@ -22,7 +22,7 @@ public:
 
 protected:
   Slot::Index user_;
-  UserEffect<TBattle, TEvents, TCommands> effect_;
+  UserEffect<TBattle, TEvent, TCommands> effect_;
   std::vector<Target> targets_;
 };
 } // namespace ngl::tbc

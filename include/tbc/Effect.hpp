@@ -22,20 +22,20 @@ struct Winners {
   std::vector<std::size_t> winners;
 };
 
-template <typename TEvents>
+template <typename TEvent>
 struct Events {
-  std::vector<TEvents> events;
+  std::vector<TEvent> events;
 };
 
-template <typename TEvents, typename TCommands>
+template <typename TEvent, typename TCommands>
 // TODO: are events actionable? i think so? that would solve the issue of buffered commands/event queue order
-using Result = std::tuple<Status, Winners, std::vector<TCommands>, Events<TEvents>>;
+using Result = std::tuple<Status, Winners, std::vector<TCommands>, Events<TEvent>>;
 } // namespace EffectResult
 
-template <typename TBattle, typename TEvents, typename TCommands>
+template <typename TBattle, typename TEvent, typename TCommands>
 class Effect {
 public:
-  using Result = EffectResult::Result<TEvents, TCommands>;
+  using Result = EffectResult::Result<TEvent, TCommands>;
 
   explicit Effect(std::function<Result(TBattle &, const std::vector<Target> &)> f) : xfer_{std::move(f)} {}
 

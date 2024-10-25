@@ -19,9 +19,9 @@
 
 namespace ngl::tbc {
 
-template <typename TState, typename TCommand, typename TCommandResult>
+template <typename TState, typename TCommand, typename TCommandResult, typename TEvent>
 class Battle {
-  using TBattle                = Battle<TState, TCommand, TCommandResult>;
+  using TBattle                = Battle<TState, TCommand, TCommandResult, TEvent>;
   using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
   using TPlayerCommandRequest  = PlayerCommandRequest<TCommand>;
@@ -33,7 +33,7 @@ class Battle {
 
 public:
   // is an event actionable? probably right?
-  using Actionable = std::variant<TCommand, std::size_t, std::function<std::size_t(const TBattle &)>>;
+  using Actionable = std::variant<TCommand, std::size_t, std::function<std::size_t(const TBattle &)>, TEvent>;
 
   struct Schedule {
     std::vector<std::vector<Actionable>> order;

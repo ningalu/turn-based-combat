@@ -21,12 +21,12 @@
 
 namespace ngl::tbc {
 
-template <typename TState, typename TCommand, typename TCommandResult, typename TEvents>
+template <typename TState, typename TCommand, typename TCommandResult, typename TEvent>
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
-  using TBattle         = Battle<TState, TCommand, TCommandResult>;
+  using TBattle         = Battle<TState, TCommand, TCommandResult, TEvent>;
   using TSchedule       = typename TBattle::Schedule;
-  using TAction         = Action<TBattle, TEvents, TCommand>;
+  using TAction         = Action<TBattle, TEvent, TCommand>;
 
   using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
@@ -49,7 +49,7 @@ public:
     return out;
   }
 
-  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvents &event, TBattle &battle) const {
+  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvent &event, TBattle &battle) const {
     return std::visit([&](auto &&event_payload) {
       using T = std::decay_t<decltype(event_payload)>;
       return PostEvent<T>(event_payload, battle);
@@ -213,7 +213,7 @@ public:
   }
 
 protected:
-  EventHandler<TBattle, TCommand, TEvents> event_handlers_;
+  EventHandler<TBattle, TCommand, TEvent> event_handlers_;
 
   TScheduleGenerator schedule_generator_;
 

@@ -12,19 +12,19 @@
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
-template <typename TBattle, typename TEvents, typename TCommands>
+template <typename TBattle, typename TEvent, typename TCommands>
 class Action {
 public:
-  using Result   = typename Effect<TBattle, TEvents, TCommands>::Result;
-  using Deferred = std::variant<DeferredEffect<TBattle, TEvents, TCommands>, DeferredUserEffect<TBattle, TEvents, TCommands>>;
+  using Result   = typename Effect<TBattle, TEvent, TCommands>::Result;
+  using Deferred = std::variant<DeferredEffect<TBattle, TEvent, TCommands>, DeferredUserEffect<TBattle, TEvent, TCommands>>;
 
 protected:
-  using TAction    = Action<TBattle, TEvents, TCommands>;
+  using TAction    = Action<TBattle, TEvent, TCommands>;
   using TDecorator = std::function<Result(TBattle &)>;
 
   template <typename T>
   [[nodiscard]] static std::vector<Deferred> DeferredVec(const std::vector<T> &dv) {
-    static_assert(std::is_same_v<T, DeferredEffect<TBattle, TEvents, TCommands>> || std::is_same_v<T, DeferredUserEffect<TBattle, TEvents, TCommands>>);
+    static_assert(std::is_same_v<T, DeferredEffect<TBattle, TEvent, TCommands>> || std::is_same_v<T, DeferredUserEffect<TBattle, TEvent, TCommands>>);
     std::vector<Deferred> out;
     out.reserve(dv.size());
     for (const auto &e : dv) {
@@ -39,8 +39,8 @@ public:
   TDecorator pre;
   TDecorator post;
 
-  explicit Action(const std::vector<DeferredEffect<TBattle, TEvents, TCommands>> &d) : TAction(DeferredVec(d)) {}
-  explicit Action(const std::vector<DeferredUserEffect<TBattle, TEvents, TCommands>> &d) : TAction(DeferredVec(d)) {}
+  explicit Action(const std::vector<DeferredEffect<TBattle, TEvent, TCommands>> &d) : TAction(DeferredVec(d)) {}
+  explicit Action(const std::vector<DeferredUserEffect<TBattle, TEvent, TCommands>> &d) : TAction(DeferredVec(d)) {}
   explicit Action(const std::vector<Deferred> &d) : TAction(DeferredEffectsImpl(d)) {}
   explicit Action(ActionImpl impl) : started_{false}, finished_{false}, cancelled_{false}, action_impl_{std::move(impl)} {}
 

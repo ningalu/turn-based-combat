@@ -12,34 +12,34 @@
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
-template <typename TUnit_, typename TBattleState_, typename TCommands_, typename TCommandResult_, typename TEvents_>
+template <typename TUnit_, typename TBattleState_, typename TCommand_, typename TCommandResult_, typename TEvent_>
 struct BattleTypes {
   using TUnit          = TUnit_;
   using TBattleState   = TBattleState_;
-  using TCommands      = TCommands_;
+  using TCommand       = TCommand_;
   using TCommandResult = TCommandResult_;
-  using TEvents        = TEvents_;
+  using TEvent         = TEvent_;
 
-  using TCommandPayload        = typename TCommands::Payload;
-  using TCommandPayloadTypeSet = typename TCommands::PayloadTypeSet;
-  using TPlayerComms           = PlayerComms<TCommands, TCommandResult>;
-  using TCommandRequest        = PlayerCommandRequest<TCommands>;
+  using TCommandPayload        = typename TCommand::Payload;
+  using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
+  using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
+  using TCommandRequest        = PlayerCommandRequest<TCommand>;
 
-  using TEventPayload = typename TEvents::Payload;
+  using TEventPayload = typename TEvent::Payload;
 
-  using TBattle          = Battle<TBattleState, TCommands, TCommandResult>;
+  using TBattle          = Battle<TBattleState, TCommand, TCommandResult, TEvent_>;
   using TSchedule        = typename TBattle::Schedule;
-  using TBattleScheduler = BattleScheduler<TBattleState, TCommands, TCommandResult, TEvents>;
+  using TBattleScheduler = BattleScheduler<TBattleState, TCommand, TCommandResult, TEvent>;
 
-  using TEventHandler = EventHandler<TBattle, TCommands, TEvents>;
+  using TEventHandler = EventHandler<TBattle, TCommand, TEvent>;
 
-  using TEffect             = Effect<TBattle, TEvents, TCommands>;
-  using TUserEffect         = UserEffect<TBattle, TEvents, TCommands>;
-  using TDeferredEffect     = DeferredEffect<TBattle, TEvents, TCommands>;
-  using TDeferredUserEffect = DeferredUserEffect<TBattle, TEvents, TCommands>;
+  using TEffect             = Effect<TBattle, TEvent, TCommand>;
+  using TUserEffect         = UserEffect<TBattle, TEvent, TCommand>;
+  using TDeferredEffect     = DeferredEffect<TBattle, TEvent, TCommand>;
+  using TDeferredUserEffect = DeferredUserEffect<TBattle, TEvent, TCommand>;
   using TEffectResult       = typename TEffect::Result;
 
-  using TAction = Action<TBattle, TEvents, TCommands>;
+  using TAction = Action<TBattle, TEvent, TCommand>;
 };
 } // namespace ngl::tbc
 
