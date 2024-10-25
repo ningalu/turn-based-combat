@@ -29,7 +29,20 @@ class BattleScheduler {
   using TSchedule       = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TAction         = Action<TBattle, TCommand, TEvent>;
 
-  using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;
+  template <SimultaneousActionStrategy TSimultaneousActionStrategy>
+  struct ActionTranslatorHelper {};
+
+  template <>
+  struct ActionTranslatorHelper<SimultaneousActionStrategy::DISABLED> {
+    using ActionFrom = TCommand;
+  };
+
+  template <>
+  struct ActionTranslatorHelper<SimultaneousActionStrategy::ENABLED> {
+    using ActionFrom = std::vector<TCommand>;
+  };
+
+  using TActionTranslator = std::function<TAction(const typename ActionTranslatorHelper<TSimultaneousActionStrategy>::ActionFrom &, const TBattle &)>;
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
   using TScheduleGenerator = std::function<TSchedule(TBattle &, const std::vector<TCommand> &, std::size_t)>;
@@ -132,18 +145,26 @@ public:
     while (!battle.current_turn_schedule.Empty()) {
       const auto actionable = battle.current_turn_schedule.order.at(0);
       // TODO: figure out configurable simultaneous/sequential actionable resolution
-      assert(actionable.size() == 1);
-      const auto action = std::visit([&](auto &&payload) {
-        using T = std::decay_t<decltype(payload)>;
-        if constexpr (std::is_same_v<T, TCommand>) {
-          return TranslateAction(payload, battle);
+      const auto action = [&, this]() {
+        if constexpr (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED) {
+          return std::visit(
+            [&](auto &&payload) {
+              using T = std::decay_t<decltype(payload)>;
+              if constexpr (std::is_same_v<T, TCommand>) {
+                return TranslateAction(payload, battle);
+              } else {
+                // TODO: query immediate action actionables
+                assert(false);
+                return TAction{std::vector<typename TAction::Deferred>{}};
+              }
+            },
+            actionable.at(0)
+          );
         } else {
-          // TODO: query immediate action actionables
-          assert(false);
-          return TAction{std::vector<typename TAction::Deferred>{}};
+          return TranslateAction(actionable, battle);
         }
-      },
-                                     actionable.at(0));
+      }();
+
       ResolveAction(action, battle);
       battle.current_turn_schedule.Next();
     }
