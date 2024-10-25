@@ -9,7 +9,8 @@ namespace ngl::tbc {
 template <typename TBattle, typename TCommands, typename TEvent>
 class UserEffect {
 public:
-  using Result = typename Effect<TBattle, TCommands, TEvent>::Result;
+  using TEffect = Effect<TBattle, TCommands, TEvent>;
+  using Result  = typename TEffect::Result;
 
   explicit UserEffect(std::function<Result(Slot::Index, TBattle &, const std::vector<Target> &)> f) : xfer_{std::move(f)} {}
 

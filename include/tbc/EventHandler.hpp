@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "tbc/Action.hpp"
+#include "tbc/Actionable.hpp"
 #include "tbc/Event.hpp"
 
 namespace ngl::tbc {
@@ -24,6 +25,8 @@ public:
   using Callback = detail::EventHandlerCallback<TBattle, Event<TUserPayloads...>, TCommands, TSpecificEvent>;
 
 protected:
+  using TAction = Action<TBattle, TCommands, Event<TUserPayloads...>>;
+
   template <typename TEventDetail>
   struct HandlerDetail;
 
@@ -51,7 +54,7 @@ public:
   }
 
   template <typename TSpecificEvent>
-  [[nodiscard]] std::vector<Action<TBattle, TCommands, Event<TUserPayloads...>>> PostEvent(const TSpecificEvent &e, TBattle &b) const {
+  [[nodiscard]] std::vector<TAction> PostEvent(const TSpecificEvent &e, TBattle &b) const {
     assert(HasHandler<TSpecificEvent>());
     return std::get<Callback<TSpecificEvent>>(callbacks_)(e, b);
   }

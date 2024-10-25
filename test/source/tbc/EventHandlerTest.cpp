@@ -10,7 +10,7 @@ struct TestBattleState {};
 using TestCommands       = ngl::tbc::Command<int, std::string>;
 using TestCommandResults = ngl::tbc::CommandResult<bool>;
 using TestEvents         = ngl::tbc::Event<int, double>;
-using TestBattle         = ngl::tbc::Battle<TestBattleState, TestCommands, TestCommandResults, TestEvents>;
+using TestBattle         = ngl::tbc::Battle<TestBattleState, TestCommands, TestCommandResults, TestEvents, ngl::tbc::SimultaneousActionStrategy::DISABLED>;
 
 using TestDefEffect = ngl::tbc::DeferredEffect<TestBattle, TestCommands, TestEvents>;
 using TestAction    = ngl::tbc::Action<TestBattle, TestCommands, TestEvents>;

@@ -3,6 +3,7 @@
 
 #include <optional>
 
+#include "tbc/Actionable.hpp"
 #include "tbc/Battle.hpp"
 #include "tbc/Effect.hpp"
 #include "tbc/Target.hpp"
@@ -10,17 +11,19 @@
 namespace ngl::tbc {
 template <typename TBattle, typename TCommands, typename TEvent>
 class DeferredEffect {
-  using Result = typename Effect<TBattle, TCommands, TEvent>::Result;
+
+  using TEffect = Effect<TBattle, TCommands, TEvent>;
+  using Result  = typename TEffect::Result;
 
 public:
-  DeferredEffect(Effect<TBattle, TCommands, TEvent> effect, std::vector<Target> targets) : effect_{std::move(effect)}, targets_{std::move(targets)} {}
+  DeferredEffect(TEffect effect, std::vector<Target> targets) : effect_{std::move(effect)}, targets_{std::move(targets)} {}
 
   [[nodiscard]] Result Apply(TBattle &b) {
     return effect_.Apply(b, targets_);
   }
 
 protected:
-  Effect<TBattle, TCommands, TEvent> effect_;
+  TEffect effect_;
   std::vector<Target> targets_;
 };
 } // namespace ngl::tbc
