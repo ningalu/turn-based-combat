@@ -40,7 +40,8 @@ struct BattleTypes {
   using TDeferredUserEffect = DeferredUserEffect<TBattle, TCommand, TEvent>;
   using TEffectResult       = typename TEffect::Result;
 
-  using TAction = Action<TBattle, TCommand, TEvent>;
+  using TAction     = Action<TBattle, TCommand, TEvent>;
+  using TActionable = Actionable<TCommand, TEvent>;
 };
 } // namespace ngl::tbc
 

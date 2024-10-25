@@ -55,7 +55,8 @@ using MyResult = MyBattleTypes::TEffectResult;
 using MyCmdSet = MyBattleTypes::TCommandPayloadTypeSet;
 using MyComms  = MyBattleTypes::TPlayerComms;
 
-using MySched = MyBattleTypes::TSchedule;
+using MySched      = MyBattleTypes::TSchedule;
+using MyActionable = MyBattleTypes::TActionable;
 
 MyEffect DebugEffect(int n) {
   return MyEffect{[=]([[maybe_unused]] auto &&...whatever) {std::cout << "effect resolution: " << n << "\n"; return MyResult{}; }};
@@ -94,27 +95,26 @@ MyUserEffect GetEffect(int state) {
     return MyResult{}; }};
 }
 
-// MyUserEffect GetEffectWithIntEvent(int state) {
-//   return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
-//     switch (u.side) {
-//     case 0:
-//       b.state.p1_state = state;
-//       break;
-//     case 1:
-//       b.state.p2_state = state;
-//       break;
-//     default:
-//       throw std::logic_error{"invalid side"};
-//     }
-//     std::cout << "setting " << u.side << " to " << state << "\n";
-//     MyResult out;
-//     MyEvents e;
-//     e.payload = 2;
-//     std::get<3>(out).events.push_back(e);
-//     return out;
-//   }
-//   };
-// }
+MyUserEffect GetEffectWithIntEvent(int state) {
+  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
+    switch (u.side) {
+    case 0:
+      b.state.p1_state = state;
+      break;
+    case 1:
+      b.state.p2_state = state;
+      break;
+    default:
+      throw std::logic_error{"invalid side"};
+    }
+    std::cout << "setting " << u.side << " to " << state << "\n";
+    MyResult out;
+    MyEvents e;
+    e.payload = 2;
+    std::get<2>(out).push_back(MyActionable{e});
+    return out;
+  }};
+}
 
 using MyAction = MyBattleTypes::TAction;
 MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Target> &targets, int state) {
@@ -126,14 +126,14 @@ MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Targe
   return MyAction{std::vector<MyDefUserEffect>{e}};
 }
 
-// MyAction GetActionWithIntEffect(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Target> &targets, int state) {
-//   if (state > 2) {
-//     throw std::logic_error{"invalid state"};
-//   }
+MyAction GetActionWithIntEffect(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Target> &targets, int state) {
+  if (state > 2) {
+    throw std::logic_error{"invalid state"};
+  }
 
-//   MyDefUserEffect e{user, {GetEffectWithIntEvent(state)}, targets};
-//   return MyAction{std::vector<MyDefUserEffect>{e}};
-// }
+  MyDefUserEffect e{user, {GetEffectWithIntEvent(state)}, targets};
+  return MyAction{std::vector<MyDefUserEffect>{e}};
+}
 
 std::function<std::vector<MyCommandPayload>(const MyCmdSet &)> GetComms(int n) {
   assert(n < 3);
@@ -174,23 +174,23 @@ auto default_translator = [](const MyCommands &command, [[maybe_unused]] const M
   return GetAction({command.player, 0}, {}, move);
 };
 
-// auto int_event_translator = [](const MyCommands &command, [[maybe_unused]] const MyBattle &unused) {
-//   int move = std::visit([](auto &&p) {
-//     using T = std::decay_t<decltype(p)>;
-//     if constexpr (std::is_same_v<T, RockCommand>) {
-//       return 0;
-//     } else if constexpr (std::is_same_v<T, PaperCommand>) {
-//       return 1;
-//     } else if constexpr (std::is_same_v<T, ScissorsCommand>) {
-//       return 2;
-//     } else {
-//       throw std::logic_error{"invalid move"};
-//     }
-//   },
-//                         command.payload);
+auto int_event_translator = [](const MyCommands &command, [[maybe_unused]] const MyBattle &unused) {
+  int move = std::visit([](auto &&p) {
+    using T = std::decay_t<decltype(p)>;
+    if constexpr (std::is_same_v<T, RockCommand>) {
+      return 0;
+    } else if constexpr (std::is_same_v<T, PaperCommand>) {
+      return 1;
+    } else if constexpr (std::is_same_v<T, ScissorsCommand>) {
+      return 2;
+    } else {
+      throw std::logic_error{"invalid move"};
+    }
+  },
+                        command.payload);
 
-//   return GetActionWithIntEffect({command.player, 0}, {}, move);
-// };
+  return GetActionWithIntEffect({command.player, 0}, {}, move);
+};
 
 std::vector<MyAction> default_turnend([[maybe_unused]] ngl::tbc::DefaultEvents::TurnEnd unused1, [[maybe_unused]] const MyBattle &unused2) {
   return {MyAction{std::vector<MyDefEffect>{MyDefEffect{resolve_rps_effect(), {}}}}};
@@ -227,7 +227,7 @@ auto main() -> int {
     std::cout << "Test battle end\n";
     test_battle_end();
     std::cout << "\n\nTest user event\n";
-    // test_user_event();
+    test_user_event();
 
     auto input_comms = [&]([[maybe_unused]] const MyCmdSet &unused) {
       std::set<std::string> valid{"R", "P", "S"};
@@ -294,24 +294,24 @@ void test_battle_end() {
   assert(winners.at(0) == 1);
 }
 
-// void test_user_event() {
-//   auto p1 = MyComms{"Player 1", GetComms(1)};
-//   auto p2 = MyComms{"Player 2", GetComms(2)};
+void test_user_event() {
+  auto p1 = MyComms{"Player 1", GetComms(1)};
+  auto p2 = MyComms{"Player 2", GetComms(2)};
 
-//   std::vector<MyComms> players({p1, p2});
+  std::vector<MyComms> players({p1, p2});
 
-//   auto b = MyBattle{players};
-//   b.SetCommandValidator(default_validator);
+  auto b = MyBattle{players};
+  b.SetCommandValidator(default_validator);
 
-//   MyScheduler bs;
-//   bs.SetActionTranslator(int_event_translator);
-//   bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
-//   bs.SetHandler<ngl::tbc::DefaultEvents::TurnEnd>(default_turnend);
-//   bs.SetHandler<int>(default_intevent);
-//   bs.SetScheduleGenerator(schedule_generator);
+  MyScheduler bs;
+  bs.SetActionTranslator(int_event_translator);
+  bs.SetBattleEndedChecker([]([[maybe_unused]] auto &&unused) { return std::nullopt; });
+  bs.SetHandler<ngl::tbc::DefaultEvents::TurnEnd>(default_turnend);
+  bs.SetHandler<int>(default_intevent);
+  bs.SetScheduleGenerator(schedule_generator);
 
-//   auto winners = bs.RunBattle(b);
+  auto winners = bs.RunBattle(b);
 
-//   assert(winners.size() == 1);
-//   assert(winners.at(0) == 1);
-// }
+  assert(winners.size() == 1);
+  assert(winners.at(0) == 1);
+}

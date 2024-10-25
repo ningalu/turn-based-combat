@@ -187,17 +187,22 @@ public:
 
       if (!actionables.empty()) {
         for (auto it = actionables.rbegin(); it != actionables.rend(); it++) {
-          const auto dynamic_action = std::visit([&, this](auto &&payload) -> TAction {
+          const auto dynamic_actions = std::visit([&, this](auto &&payload) -> std::vector<TAction> {
             using T = std::decay_t<decltype(payload)>;
             if constexpr (std::is_same_v<T, TCommand>) {
-              return TranslateAction(payload, battle);
+              return std::vector<TAction>{TranslateAction(payload, battle)};
+            } else if constexpr (std::is_same_v<T, TEvent>) {
+              const auto event_actions = PostEvent(payload, battle);
+              return (event_actions.has_value() ? event_actions.value() : std::vector<TAction>{});
             } else {
               assert(false);
-              return TAction{std::vector<typename TAction::Deferred>{}};
+              return std::vector<TAction>{};
             }
           },
-                                                 *it);
-          to_resolve.push(dynamic_action);
+                                                  *it);
+          for (auto jt = dynamic_actions.rbegin(); jt != dynamic_actions.rend(); jt++) {
+            to_resolve.push(*jt);
+          }
         }
       }
     }
