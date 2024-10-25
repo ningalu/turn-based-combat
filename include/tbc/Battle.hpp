@@ -11,47 +11,31 @@
 #include <unordered_set>
 #include <vector>
 
+#include "tbc/Actionable.hpp"
 #include "tbc/Command.hpp"
 #include "tbc/Comms.hpp"
 #include "tbc/Log.h"
 #include "tbc/PlayerCommandRequest.hpp"
 #include "tbc/PlayerComms.hpp"
+#include "tbc/Schedule.hpp"
 
 namespace ngl::tbc {
 
-template <typename TState, typename TCommand, typename TCommandResult>
+template <typename TState, typename TCommand, typename TCommandResult, typename TEvent>
 class Battle {
-  using TBattle                = Battle<TState, TCommand, TCommandResult>;
+  using TBattle                = Battle<TState, TCommand, TCommandResult, TEvent>;
   using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
   using TPlayerCommandRequest  = PlayerCommandRequest<TCommand>;
+  using TActionable            = Actionable<TCommand, TEvent>;
+  using TSchedule              = Schedule<TCommand, TEvent>;
+  using TCommandPayload        = typename TCommand::Payload;
 
-  using TCommandPayload          = typename TCommand::Payload;
   using TCommandValidator        = std::function<std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
   using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
 public:
-  // is an event actionable? probably right?
-  using Actionable = std::variant<TCommand, std::size_t, std::function<std::size_t(const TBattle &)>>;
-
-  struct Schedule {
-    std::vector<std::vector<Actionable>> order;
-    Schedule() = default;
-    Schedule(std::vector<TCommand> commands) {
-      for (const auto &command : commands) {
-        order.push_back(std::vector<Actionable>{Actionable{command}});
-      }
-    }
-    [[nodiscard]] bool Empty() const {
-      return order.empty();
-    }
-    void Next() {
-      assert(!Empty());
-      order.erase(order.begin());
-    }
-  };
-
   Battle(const TState &state_, std::vector<TPlayerComms> comms)
       : state{state_}, comms_{std::move(comms)} {}
 
@@ -60,8 +44,9 @@ public:
 
   TState state;
   // TODO: can you queue anything other than commands?
+  // TODO: queue Actionables?
   std::vector<std::vector<TCommand>> queued_commands;
-  Schedule current_turn_schedule;
+  TSchedule current_turn_schedule;
 
   [[nodiscard]] std::size_t PlayerCount() const {
     return comms_.PlayerCount();
@@ -170,7 +155,7 @@ public:
     queued_commands.at(turns_ahead).BufferCommand(c);
   }
 
-  void InitTurn(const Schedule &schedule) {
+  void InitTurn(const TSchedule &schedule) {
     current_turn_schedule = schedule;
   }
 

@@ -55,7 +55,8 @@ using MyResult = MyBattleTypes::TEffectResult;
 using MyCmdSet = MyBattleTypes::TCommandPayloadTypeSet;
 using MyComms  = MyBattleTypes::TPlayerComms;
 
-using MySched = MyBattleTypes::TSchedule;
+using MySched      = MyBattleTypes::TSchedule;
+using MyActionable = MyBattleTypes::TActionable;
 
 MyEffect DebugEffect(int n) {
   return MyEffect{[=]([[maybe_unused]] auto &&...whatever) {std::cout << "effect resolution: " << n << "\n"; return MyResult{}; }};
@@ -97,16 +98,22 @@ MyUserEffect GetEffect(int state) {
 MyUserEffect GetEffectWithIntEvent(int state) {
   return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
     switch (u.side) {
-      case 0: b.state.p1_state = state; break;
-      case 1: b.state.p2_state = state; break;
-      default: throw std::logic_error{"invalid side"};
+    case 0:
+      b.state.p1_state = state;
+      break;
+    case 1:
+      b.state.p2_state = state;
+      break;
+    default:
+      throw std::logic_error{"invalid side"};
     }
     std::cout << "setting " << u.side << " to " << state << "\n";
     MyResult out;
     MyEvents e;
     e.payload = 2;
-    std::get<3>(out).events.push_back(e);
-    return out; }};
+    std::get<2>(out).push_back(MyActionable{e});
+    return out;
+  }};
 }
 
 using MyAction = MyBattleTypes::TAction;

@@ -10,10 +10,10 @@ struct TestBattleState {};
 using TestCommands       = ngl::tbc::Command<int, std::string>;
 using TestCommandResults = ngl::tbc::CommandResult<bool>;
 using TestEvents         = ngl::tbc::Event<int, double>;
-using TestBattle         = ngl::tbc::Battle<TestBattleState, TestCommands, TestCommandResults>;
+using TestBattle         = ngl::tbc::Battle<TestBattleState, TestCommands, TestCommandResults, TestEvents>;
 
-using TestDefEffect = ngl::tbc::DeferredEffect<TestBattle, TestEvents, TestCommands>;
-using TestAction    = ngl::tbc::Action<TestBattle, TestEvents, TestCommands>;
+using TestDefEffect = ngl::tbc::DeferredEffect<TestBattle, TestCommands, TestEvents>;
+using TestAction    = ngl::tbc::Action<TestBattle, TestCommands, TestEvents>;
 TEST_CASE("Event Handler can be instantiated", "[EventHandler]") {
 
   ngl::tbc::EventHandler<TestBattle, TestCommands, TestEvents> eh;

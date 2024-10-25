@@ -18,15 +18,16 @@
 #include "tbc/Effect.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerCommandRequest.hpp"
+#include "tbc/Schedule.hpp"
 
 namespace ngl::tbc {
 
-template <typename TState, typename TCommand, typename TCommandResult, typename TEvents>
+template <typename TState, typename TCommand, typename TCommandResult, typename TEvent>
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
-  using TBattle         = Battle<TState, TCommand, TCommandResult>;
-  using TSchedule       = typename TBattle::Schedule;
-  using TAction         = Action<TBattle, TEvents, TCommand>;
+  using TBattle         = Battle<TState, TCommand, TCommandResult, TEvent>;
+  using TSchedule       = Schedule<TCommand, TEvent>;
+  using TAction         = Action<TBattle, TCommand, TEvent>;
 
   using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
@@ -49,7 +50,7 @@ public:
     return out;
   }
 
-  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvents &event, TBattle &battle) const {
+  [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvent &event, TBattle &battle) const {
     return std::visit([&](auto &&event_payload) {
       using T = std::decay_t<decltype(event_payload)>;
       return PostEvent<T>(event_payload, battle);
@@ -169,13 +170,13 @@ public:
         continue;
       }
 
-      const auto [status, winners, commands, events] = res.value();
+      const auto [status, winners, actionables] = res.value();
 
       // Resolve the current action even if the battle has ended
       // TODO: make this configurable
       // TODO: update this to match the current winner model
-      if (!winners.winners.empty()) {
-        battle.EndBattle(winners.winners);
+      if (winners.has_value()) {
+        battle.EndBattle(winners.value());
       }
 
       // TODO: this is a placeholder. figure out something more flexible later
@@ -184,24 +185,23 @@ public:
         continue;
       }
 
-      // TODO: this should be a vector of Actionable values
-      if (!commands.empty()) {
-        for (auto it = commands.rbegin(); it != commands.rend(); it++) {
-          const auto dynamic_action = TranslateAction(*it, battle);
-          to_resolve.push(dynamic_action);
-        }
-      }
-
-      // TODO: see effect result TODO
-      if (!events.events.empty()) {
-        for (auto event = events.events.rbegin(); event != events.events.rend(); event++) {
-          const auto event_actions_opt = PostEvent(*event, battle);
-          // TODO: why is this optional?
-          if (event_actions_opt.has_value()) {
-            const auto event_actions = event_actions_opt.value();
-            for (auto event_action = event_actions.rbegin(); event_action != event_actions.rend(); event_action++) {
-              to_resolve.push(*event_action);
+      if (!actionables.empty()) {
+        for (auto it = actionables.rbegin(); it != actionables.rend(); it++) {
+          const auto dynamic_actions = std::visit([&, this](auto &&payload) -> std::vector<TAction> {
+            using T = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<T, TCommand>) {
+              return std::vector<TAction>{TranslateAction(payload, battle)};
+            } else if constexpr (std::is_same_v<T, TEvent>) {
+              const auto event_actions = PostEvent(payload, battle);
+              return (event_actions.has_value() ? event_actions.value() : std::vector<TAction>{});
+            } else {
+              assert(false);
+              return std::vector<TAction>{};
             }
+          },
+                                                  *it);
+          for (auto jt = dynamic_actions.rbegin(); jt != dynamic_actions.rend(); jt++) {
+            to_resolve.push(*jt);
           }
         }
       }
@@ -213,7 +213,7 @@ public:
   }
 
 protected:
-  EventHandler<TBattle, TCommand, TEvents> event_handlers_;
+  EventHandler<TBattle, TCommand, TEvent> event_handlers_;
 
   TScheduleGenerator schedule_generator_;
 
