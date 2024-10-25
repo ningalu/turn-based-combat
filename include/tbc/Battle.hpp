@@ -21,14 +21,19 @@
 
 namespace ngl::tbc {
 
-template <typename TState, typename TCommand, typename TCommandResult, typename TEvent>
+template <
+  typename TState,
+  typename TCommand,
+  typename TCommandResult,
+  typename TEvent,
+  SimultaneousActionStrategy TSimultaneousActionStrategy>
 class Battle {
-  using TBattle                = Battle<TState, TCommand, TCommandResult, TEvent>;
+  using TBattle                = Battle<TState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
   using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
   using TPlayerCommandRequest  = PlayerCommandRequest<TCommand>;
-  using TActionable            = Actionable<TCommand, TEvent>;
-  using TSchedule              = Schedule<TCommand, TEvent>;
+  using TActionable            = Actionable<TCommand, TEvent, TSimultaneousActionStrategy>;
+  using TSchedule              = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TCommandPayload        = typename TCommand::Payload;
 
   using TCommandValidator        = std::function<std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
@@ -36,6 +41,8 @@ class Battle {
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
 public:
+  constexpr static auto SimultaneousActionStrategy = TSimultaneousActionStrategy;
+
   Battle(const TState &state_, std::vector<TPlayerComms> comms)
       : state{state_}, comms_{std::move(comms)} {}
 

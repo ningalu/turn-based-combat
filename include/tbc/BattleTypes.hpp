@@ -13,7 +13,7 @@
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
-template <typename TUnit_, typename TBattleState_, typename TCommand_, typename TCommandResult_, typename TEvent_>
+template <typename TUnit_, typename TBattleState_, typename TCommand_, typename TCommandResult_, typename TEvent_, SimultaneousActionStrategy TSimultaneousActionStrategy = SimultaneousActionStrategy::DISABLED>
 struct BattleTypes {
   using TUnit          = TUnit_;
   using TBattleState   = TBattleState_;
@@ -28,9 +28,9 @@ struct BattleTypes {
 
   using TEventPayload = typename TEvent::Payload;
 
-  using TBattle          = Battle<TBattleState, TCommand, TCommandResult, TEvent_>;
-  using TSchedule        = Schedule<TCommand, TEvent>;
-  using TBattleScheduler = BattleScheduler<TBattleState, TCommand, TCommandResult, TEvent>;
+  using TBattle          = Battle<TBattleState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
+  using TSchedule        = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
+  using TBattleScheduler = BattleScheduler<TBattleState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
 
   using TEventHandler = EventHandler<TBattle, TCommand, TEvent>;
 
@@ -41,7 +41,7 @@ struct BattleTypes {
   using TEffectResult       = typename TEffect::Result;
 
   using TAction     = Action<TBattle, TCommand, TEvent>;
-  using TActionable = Actionable<TCommand, TEvent>;
+  using TActionable = Actionable<TCommand, TEvent, TSimultaneousActionStrategy>;
 };
 } // namespace ngl::tbc
 

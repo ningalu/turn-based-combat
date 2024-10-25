@@ -28,15 +28,17 @@ struct Events {
   std::vector<TEvent> events;
 };
 
-template <typename TCommands, typename TEvent>
+template <typename TCommands, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
 // TODO: are events actionable? i think so? that would solve the issue of buffered commands/event queue order
-using Result = std::tuple<Status, std::optional<std::vector<std::size_t>>, std::vector<Actionable<TCommands, TEvent>>>;
+using Result = std::tuple<Status, std::optional<std::vector<std::size_t>>, std::vector<Actionable<TCommands, TEvent, TSimultaneousActionStrategy>>>;
 } // namespace EffectResult
 
 template <typename TBattle, typename TCommands, typename TEvent>
 class Effect {
+  constexpr static auto TSimultaneousActionStrategy = TBattle::SimultaneousActionStrategy;
+
 public:
-  using Result = EffectResult::Result<TCommands, TEvent>;
+  using Result = EffectResult::Result<TCommands, TEvent, TSimultaneousActionStrategy>;
 
   explicit Effect(std::function<Result(TBattle &, const std::vector<Target> &)> f) : xfer_{std::move(f)} {}
 

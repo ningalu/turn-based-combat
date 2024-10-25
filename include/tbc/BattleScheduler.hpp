@@ -22,11 +22,11 @@
 
 namespace ngl::tbc {
 
-template <typename TState, typename TCommand, typename TCommandResult, typename TEvent>
+template <typename TState, typename TCommand, typename TCommandResult, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
-  using TBattle         = Battle<TState, TCommand, TCommandResult, TEvent>;
-  using TSchedule       = Schedule<TCommand, TEvent>;
+  using TBattle         = Battle<TState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
+  using TSchedule       = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TAction         = Action<TBattle, TCommand, TEvent>;
 
   using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;

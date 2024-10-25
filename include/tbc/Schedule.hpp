@@ -6,7 +6,7 @@
 #include "tbc/Actionable.hpp"
 
 namespace ngl::tbc {
-template <typename TCommand, typename TEvent>
+template <typename TCommand, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
 struct Schedule {
   using TActionable = Actionable<TCommand, TEvent>;
 
