@@ -13,7 +13,6 @@
 
 #include "tbc/Command.hpp"
 #include "tbc/Comms.hpp"
-#include "tbc/Layout.h"
 #include "tbc/Log.h"
 #include "tbc/PlayerCommandRequest.hpp"
 #include "tbc/PlayerComms.hpp"
@@ -53,24 +52,16 @@ public:
     }
   };
 
-  Battle(const TState &state_, std::vector<TPlayerComms> comms, Layout layout)
-      : state{state_}, comms_{std::move(comms)}, layout_{std::move(layout)} {}
+  Battle(const TState &state_, std::vector<TPlayerComms> comms)
+      : state{state_}, comms_{std::move(comms)} {}
 
-  Battle(const std::vector<TPlayerComms> &comms, const Layout &layout)
-      : Battle{{}, comms, layout} {}
+  Battle(const std::vector<TPlayerComms> &comms)
+      : Battle{{}, comms} {}
 
   TState state;
   // TODO: can you queue anything other than commands?
   std::vector<std::vector<TCommand>> queued_commands;
   Schedule current_turn_schedule;
-
-  [[nodiscard]] const Layout &layout() const {
-    return layout_;
-  }
-
-  [[nodiscard]] Slot GetSlot(Slot::Index i) const {
-    return layout_.GetSlot(i);
-  }
 
   [[nodiscard]] std::size_t PlayerCount() const {
     return comms_.PlayerCount();
@@ -197,9 +188,6 @@ public:
 
 protected:
   Comms<TCommand, TCommandResult> comms_;
-
-  // TODO: move to domain helpers
-  Layout layout_;
 
   // TODO: refactor
   std::optional<std::vector<std::size_t>> winner_indices_;

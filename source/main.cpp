@@ -17,7 +17,6 @@
 #include "tbc/Effect.hpp"
 #include "tbc/Event.hpp"
 #include "tbc/EventHandler.hpp"
-#include "tbc/Layout.h"
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Slot.h"
 #include "tbc/Target.hpp"
@@ -198,13 +197,6 @@ std::vector<MyAction> default_intevent(int n, [[maybe_unused]] const MyBattle &u
 void test_battle_end();
 void test_user_event();
 
-ngl::tbc::Layout default_layout() {
-  return ngl::tbc::Layout{std::vector<ngl::tbc::Side>{
-    ngl::tbc::Side{std::vector<ngl::tbc::Slot>{ngl::tbc::Slot{0}}},
-    ngl::tbc::Side{std::vector<ngl::tbc::Slot>{ngl::tbc::Slot{1}}}
-  }};
-}
-
 MySched schedule_generator(MyBattle &battle, [[maybe_unused]] const std::vector<MyCommands> &commands, [[maybe_unused]] std::size_t turn) {
   // std::vector<MyBattleTypes::TCommandRequest> requests;
   // requests.push_back(MyBattleTypes::TCommandRequest{0, MyBattleTypes::TCommandPayloadTypeSet{true}});
@@ -254,7 +246,7 @@ auto main() -> int {
 
     std::vector<MyComms> players({p1, p2});
 
-    auto b = MyBattle{players, default_layout()};
+    auto b = MyBattle{players};
     b.SetCommandValidator(default_validator);
 
     MyScheduler bs;
@@ -280,7 +272,7 @@ void test_battle_end() {
 
   std::vector<MyComms> players({p1, p2});
 
-  auto b = MyBattle{players, default_layout()};
+  auto b = MyBattle{players};
   b.SetCommandValidator(default_validator);
 
   MyScheduler bs;
@@ -301,7 +293,7 @@ void test_user_event() {
 
   std::vector<MyComms> players({p1, p2});
 
-  auto b = MyBattle{players, default_layout()};
+  auto b = MyBattle{players};
   b.SetCommandValidator(default_validator);
 
   MyScheduler bs;

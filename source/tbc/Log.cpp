@@ -1,4 +1,6 @@
-#include "tbc/Battle.hpp"
+#include "tbc/Log.h"
+
+#include <cassert>
 
 namespace ngl::tbc {
 
