@@ -34,13 +34,13 @@ struct BattleTypes {
 
   using TEventHandler = EventHandler<TBattle, TCommand, TEvent>;
 
-  using TEffect             = Effect<TBattle, TEvent, TCommand>;
-  using TUserEffect         = UserEffect<TBattle, TEvent, TCommand>;
-  using TDeferredEffect     = DeferredEffect<TBattle, TEvent, TCommand>;
-  using TDeferredUserEffect = DeferredUserEffect<TBattle, TEvent, TCommand>;
+  using TEffect             = Effect<TBattle, TCommand, TEvent>;
+  using TUserEffect         = UserEffect<TBattle, TCommand, TEvent>;
+  using TDeferredEffect     = DeferredEffect<TBattle, TCommand, TEvent>;
+  using TDeferredUserEffect = DeferredUserEffect<TBattle, TCommand, TEvent>;
   using TEffectResult       = typename TEffect::Result;
 
-  using TAction = Action<TBattle, TEvent, TCommand>;
+  using TAction = Action<TBattle, TCommand, TEvent>;
 };
 } // namespace ngl::tbc
 

@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "tbc/Actionable.hpp"
 #include "tbc/Battle.hpp"
 #include "tbc/Slot.h"
 #include "tbc/Target.hpp"
@@ -27,15 +28,15 @@ struct Events {
   std::vector<TEvent> events;
 };
 
-template <typename TEvent, typename TCommands>
+template <typename TCommands, typename TEvent>
 // TODO: are events actionable? i think so? that would solve the issue of buffered commands/event queue order
-using Result = std::tuple<Status, Winners, std::vector<TCommands>, Events<TEvent>>;
+using Result = std::tuple<Status, std::optional<std::vector<std::size_t>>, std::vector<Actionable<TCommands, TEvent>>>;
 } // namespace EffectResult
 
-template <typename TBattle, typename TEvent, typename TCommands>
+template <typename TBattle, typename TCommands, typename TEvent>
 class Effect {
 public:
-  using Result = EffectResult::Result<TEvent, TCommands>;
+  using Result = EffectResult::Result<TCommands, TEvent>;
 
   explicit Effect(std::function<Result(TBattle &, const std::vector<Target> &)> f) : xfer_{std::move(f)} {}
 

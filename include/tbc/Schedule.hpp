@@ -12,17 +12,25 @@ struct Schedule {
 
   std::vector<std::vector<TActionable>> order;
   Schedule() = default;
+
   Schedule(std::vector<TCommand> commands) {
     for (const auto &command : commands) {
       order.push_back(std::vector<TActionable>{TActionable{command}});
     }
   }
-  [[nodiscard]] bool Empty() const {
-    return order.empty();
-  }
+
+  [[nodiscard]] bool Empty() const { return order.empty(); }
+
   void Next() {
     assert(!Empty());
     order.erase(order.begin());
+  }
+
+  [[nodiscard]] TActionable Take() {
+    assert(!Empty());
+    const auto out = *order.begin();
+    Next();
+    return out;
   }
 };
 } // namespace ngl::tbc
