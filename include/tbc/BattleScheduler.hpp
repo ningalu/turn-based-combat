@@ -18,6 +18,7 @@
 #include "tbc/Effect.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerCommandRequest.hpp"
+#include "tbc/Schedule.hpp"
 
 namespace ngl::tbc {
 
@@ -25,7 +26,7 @@ template <typename TState, typename TCommand, typename TCommandResult, typename 
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
   using TBattle         = Battle<TState, TCommand, TCommandResult, TEvent>;
-  using TSchedule       = typename TBattle::Schedule;
+  using TSchedule       = Schedule<TCommand, TEvent>;
   using TAction         = Action<TBattle, TEvent, TCommand>;
 
   using TActionTranslator = std::function<TAction(const TCommand &, const TBattle &)>;

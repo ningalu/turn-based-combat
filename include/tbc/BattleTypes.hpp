@@ -9,6 +9,7 @@
 #include "tbc/Effect.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerComms.hpp"
+#include "tbc/Schedule.hpp"
 #include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
@@ -28,7 +29,7 @@ struct BattleTypes {
   using TEventPayload = typename TEvent::Payload;
 
   using TBattle          = Battle<TBattleState, TCommand, TCommandResult, TEvent_>;
-  using TSchedule        = typename TBattle::Schedule;
+  using TSchedule        = Schedule<TCommand, TEvent>;
   using TBattleScheduler = BattleScheduler<TBattleState, TCommand, TCommandResult, TEvent>;
 
   using TEventHandler = EventHandler<TBattle, TCommand, TEvent>;
