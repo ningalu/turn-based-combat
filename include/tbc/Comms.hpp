@@ -59,12 +59,12 @@ struct Comms {
       for (std::size_t i = 0; i < players.size(); i++) {
         const auto message = log.Retrieve(i);
         if (message.has_value()) {
-          players.at(i).PostLog(*message.value());
+          players.at(i).PostLog(message.value());
         }
       }
       const auto spectator_message = log.Retrieve(std::nullopt);
       if (spectator_message.has_value()) {
-        spectator_log_output_(*spectator_message.value());
+        spectator_log_output_(spectator_message.value());
       }
       log_buffer_.erase(log_buffer_.begin());
     }

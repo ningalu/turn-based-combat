@@ -22,14 +22,15 @@ struct Log {
   void Insert(std::optional<std::size_t> spectator, const std::string &message);
   void Insert(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message);
 
-  [[nodiscard]] std::optional<const std::string *> Retrieve(std::size_t player) const;
-  [[nodiscard]] std::optional<const std::string *> Retrieve(std::nullopt_t spectator) const;
+  [[nodiscard]] std::optional<std::string> Retrieve(std::size_t player) const;
+  [[nodiscard]] std::optional<std::string> Retrieve(std::nullopt_t spectator) const;
+  [[nodiscard]] std::optional<std::string> Retrieve(std::optional<std::size_t> index) const;
 
   void Clear(std::size_t player);
   void Clear(std::nullopt_t spectator);
 
-  std::unordered_map<std::optional<std::size_t>, const std::string *> distribution;
-  std::unordered_set<std::string> messages;
+  // TODO: this is dumb. whats a way to consolidate the std::string storage without duplication or pointer invalidation?
+  std::unordered_map<std::optional<std::size_t>, std::string> distribution;
 };
 } // namespace ngl::tbc
 

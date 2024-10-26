@@ -16,6 +16,7 @@ add_executable(
     source/tbc/EventHandlerTest.cpp
     source/tbc/LayoutTest.cpp
     source/tbc/TargetTest.cpp
+    source/tbc/LogTest.cpp
 )
 
 target_link_libraries(
