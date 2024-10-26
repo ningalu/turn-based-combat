@@ -70,4 +70,63 @@ namespace ngl::tbc::sample::nac {
   }};
 }
 
+[[nodiscard]] std::vector<Action> ActionEndHandler([[maybe_unused]] ngl::tbc::DefaultEvents::PlannedActionEnd e, [[maybe_unused]] Game &battle_arg) {
+  int i = 0;
+  return std::vector{
+    Action{
+      [i](Game &battle) mutable -> std::optional<EffectResult> {
+        if (i == 0) {
+          EffectResult out;
+          i++;
+          const auto winner = GameEnded(battle);
+          if (winner.has_value()) {
+            std::vector<std::size_t> winners;
+            for (const auto w : winner.value()) {
+              winners.push_back(w == NACPlayer::NOUGHT ? 0U : 1U);
+            }
+
+            std::get<std::optional<std::vector<std::size_t>>>(out) = winners;
+          }
+          return out;
+        } else {
+          return std::nullopt;
+        }
+      }
+    }
+  };
+}
+
+[[nodiscard]] std::optional<std::vector<NACPlayer>> GameEnded(const Game &battle) {
+  for (std::size_t i = 0; i < 3; i++) {
+    // row is equal
+    if ((battle.state.board[i][0].has_value()) && (battle.state.board[i][0] == battle.state.board[i][1]) && (battle.state.board[i][0] == battle.state.board[i][2])) {
+      return std::vector{battle.state.board[i][0].value()};
+    }
+
+    // column is equal
+    if ((battle.state.board[0][i].has_value()) && (battle.state.board[0][i] == battle.state.board[1][i]) && (battle.state.board[0][i] == battle.state.board[2][i])) {
+      return std::vector{battle.state.board[0][i].value()};
+    }
+  }
+
+  if ((battle.state.board[0][0].has_value()) && (battle.state.board[0][0] == battle.state.board[1][1]) && (battle.state.board[0][0] == battle.state.board[2][2])) {
+    return std::vector{battle.state.board[0][0].value()};
+  }
+
+  if ((battle.state.board[2][0].has_value()) && (battle.state.board[2][0] == battle.state.board[1][1]) && (battle.state.board[2][0] == battle.state.board[0][2])) {
+    return std::vector{battle.state.board[2][0].value()};
+  }
+
+  // check board still has empty spaces
+  for (std::size_t x = 0; x < 3; x++) {
+    for (std::size_t y = 0; y < 3; y++) {
+      if (!battle.state.board[x][y].has_value()) {
+        return std::nullopt;
+      }
+    }
+  }
+
+  return std::vector<NACPlayer>{};
+}
+
 } // namespace ngl::tbc::sample::nac

@@ -73,8 +73,26 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
   Scheduler scheduler;
   scheduler.SetScheduleGenerator(GenerateSchedule);
   scheduler.SetActionTranslator(TranslateAction);
+  scheduler.SetHandler<ngl::tbc::DefaultEvents::PlannedActionEnd>(ActionEndHandler);
+
+  // OOX
+  // XXO
+  // OX
+  // game.state.board[0][0] = NACPlayer::NOUGHT;
+  // game.state.board[0][1] = NACPlayer::NOUGHT;
+  // game.state.board[0][2] = NACPlayer::CROSS;
+  // game.state.board[1][0] = NACPlayer::CROSS;
+  // game.state.board[1][1] = NACPlayer::CROSS;
+  // game.state.board[1][2] = NACPlayer::NOUGHT;
+  // game.state.board[2][0] = NACPlayer::NOUGHT;
+  // game.state.board[2][1] = NACPlayer::CROSS;
 
   const auto winners = scheduler.RunBattle(game);
-  std::cout << winners.size() << "\n";
+  assert(!(winners.size() > 1));
+  if (winners.size() == 0) {
+    std::cout << "Tie\n";
+  } else {
+    std::cout << "Player " << winners.at(0) << " wins\n";
+  }
   return 0;
 }

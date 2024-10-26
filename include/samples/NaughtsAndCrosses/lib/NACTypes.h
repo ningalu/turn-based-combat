@@ -34,4 +34,8 @@ using EffectResult   = NACTypes::TEffectResult;
 
 [[nodiscard]] Action TranslateAction(const Command &command, const Game &battle);
 
+[[nodiscard]] std::vector<Action> ActionEndHandler(ngl::tbc::DefaultEvents::PlannedActionEnd e, Game &battle);
+
+[[nodiscard]] std::optional<std::vector<NACPlayer>> GameEnded(const Game &battle);
+
 } // namespace ngl::tbc::sample::nac

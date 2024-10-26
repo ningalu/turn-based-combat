@@ -142,8 +142,9 @@ public:
   void RunTurn(TBattle &battle) {
     ResolveEvent<DefaultEvents::TurnStart>({}, battle);
 
-    while (!battle.current_turn_schedule.Empty()) {
+    while ((!battle.current_turn_schedule.Empty()) && (!battle.HasEnded())) {
       const auto actionable = battle.current_turn_schedule.order.at(0);
+      ResolveEvent<DefaultEvents::PlannedActionStart>({}, battle);
       // TODO: figure out configurable simultaneous/sequential actionable resolution
       const auto action = [&, this]() {
         if constexpr (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED) {
@@ -171,6 +172,8 @@ public:
 
       ResolveAction(action, battle);
       battle.current_turn_schedule.Next();
+
+      ResolveEvent<DefaultEvents::PlannedActionEnd>({}, battle);
     }
 
     // TODO: temp, figure out how to control post battle effects
@@ -179,8 +182,7 @@ public:
     }
   }
 
-  void
-  ResolveAction(const TAction &action, TBattle &battle, std::size_t max_depth = 100) {
+  void ResolveAction(const TAction &action, TBattle &battle, std::size_t max_depth = 100) {
     std::stack<TAction> to_resolve;
     to_resolve.push(action);
 

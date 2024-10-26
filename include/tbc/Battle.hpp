@@ -88,7 +88,7 @@ public:
 
   [[nodiscard]] std::vector<TCommand> RequestCommands(
     const std::vector<std::size_t> &players,
-    std::size_t attempts = 1
+    std::size_t attempts = 1000
   ) {
     std::vector<TPlayerCommandRequest> requests;
     for (const auto player : players) {
@@ -107,7 +107,7 @@ public:
   [[nodiscard]] std::vector<TCommand> RequestCommands(
     const std::vector<TPlayerCommandRequest> &players,
     TCommandValidator validator = nullptr,
-    std::size_t attempts        = 1
+    std::size_t attempts        = 1000
   ) {
     comms_.Flush();
 
