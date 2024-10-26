@@ -1,4 +1,4 @@
-#include "samples/NaughtsAndCrosses/lib/NACTypes.h"
+#include "samples/NoughtsAndCrosses/lib/NACTypes.h"
 
 #include <stdexcept>
 

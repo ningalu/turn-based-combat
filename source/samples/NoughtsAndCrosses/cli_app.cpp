@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-#include "samples/NaughtsAndCrosses/lib/NACTypes.h"
+#include "samples/NoughtsAndCrosses/lib/NACTypes.h"
 #include "util/util.h"
 
 using namespace ngl::tbc::sample::nac;

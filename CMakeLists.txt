@@ -16,7 +16,7 @@ include(cmake/variables.cmake)
 # ---- Declare library ----
 
 add_subdirectory(source/tbc)
-add_subdirectory(source/samples/NaughtsAndCrosses)
+add_subdirectory(source/samples/NoughtsAndCrosses)
 
 # ---- Declare executable ----
 
