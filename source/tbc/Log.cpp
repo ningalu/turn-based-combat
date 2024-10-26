@@ -11,21 +11,13 @@ Log::Log(std::size_t num_players) {
   }
 }
 Log::Log(std::size_t num_players, const std::string &default_message) {
-  messages.insert(default_message);
-  const auto *addr = &messages.extract(default_message).value();
-
-  distribution.insert({std::nullopt, addr});
+  distribution.insert({std::nullopt, default_message});
   for (std::size_t i = 0; i < num_players; i++) {
-    distribution.insert({std::optional{i}, addr});
+    distribution.insert({std::optional{i}, default_message});
   }
 }
 
-void Log::Insert(std::size_t player, const std::string &message) {
-  if (messages.contains(message)) {
-    const auto *addr     = &messages.extract(message).value();
-    distribution[player] = addr;
-  }
-}
+void Log::Insert(std::size_t player, const std::string &message) { distribution[player] = message; }
 
 void Log::Insert(const std::unordered_set<std::size_t> &players, const std::string &message) {
   for (const auto player : players) {
@@ -33,42 +25,37 @@ void Log::Insert(const std::unordered_set<std::size_t> &players, const std::stri
   }
 }
 
-void Log::Insert(std::nullopt_t spectator, const std::string &message) {
-  if (messages.contains(message)) {
-    const auto *addr        = &messages.extract(message).value();
-    distribution[spectator] = addr;
-  }
-}
-
-void Log::Insert(std::optional<std::size_t> spectator, const std::string &message) {
-  if (messages.contains(message)) {
-    const auto *addr        = &messages.extract(message).value();
-    distribution[spectator] = addr;
-  }
-}
+void Log::Insert(std::nullopt_t spectator, const std::string &message) { distribution[spectator] = message; }
+void Log::Insert(std::optional<std::size_t> index, const std::string &message) { distribution[index] = message; }
 
 void Log::Insert(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message) {
   for (const auto player : players) {
-    if (player.has_value()) {
-      Insert(player.value(), message);
-    } else {
-      Insert(std::nullopt, message);
-    }
+    Insert(player, message);
   }
 }
 
-[[nodiscard]] std::optional<const std::string *> Log::Retrieve(std::size_t player) const {
-  assert(distribution.contains(std::optional{player}));
-  using TOut      = std::optional<const std::string *>;
-  const auto *ptr = distribution.at(player);
-  return (ptr == nullptr) ? TOut{std::nullopt} : TOut{ptr};
+[[nodiscard]] std::optional<std::string> Log::Retrieve(std::size_t player) const {
+  if (distribution.contains(std::optional{player})) {
+    return distribution.at(player);
+  } else {
+    return std::nullopt;
+  }
 }
 
-[[nodiscard]] std::optional<const std::string *> Log::Retrieve(std::nullopt_t spectator) const {
-  assert(distribution.contains(spectator));
-  using TOut      = std::optional<const std::string *>;
-  const auto *ptr = distribution.at(spectator);
-  return (ptr == nullptr) ? TOut{std::nullopt} : TOut{ptr};
+[[nodiscard]] std::optional<std::string> Log::Retrieve(std::nullopt_t spectator) const {
+  if (distribution.contains(spectator)) {
+    return distribution.at(spectator);
+  } else {
+    return std::nullopt;
+  }
+}
+
+[[nodiscard]] std::optional<std::string> Log::Retrieve(std::optional<std::size_t> index) const {
+  if (index.has_value()) {
+    return Retrieve(index.value());
+  } else {
+    return Retrieve(std::nullopt);
+  }
 }
 
 } // namespace ngl::tbc
