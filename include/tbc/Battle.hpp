@@ -36,6 +36,7 @@ class Battle {
   using TSchedule              = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TCommandPayload        = typename TCommand::Payload;
 
+  // TODO: this probably shouldnt return a valid set of commands anymore, just a status? or pairs of commands it saw and the related status
   using TCommandValidator        = std::function<std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
   using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
@@ -160,6 +161,10 @@ public:
     }
     std::cout << "Queued " << turns_ahead << " turns ahead\n";
     queued_commands.at(turns_ahead).BufferCommand(c);
+  }
+
+  void PostLog(const std::string &message) {
+    comms_.PostLog(message);
   }
 
   void InitTurn(const TSchedule &schedule) {

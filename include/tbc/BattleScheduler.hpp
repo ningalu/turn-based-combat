@@ -152,6 +152,10 @@ public:
               using T = std::decay_t<decltype(payload)>;
               if constexpr (std::is_same_v<T, TCommand>) {
                 return TranslateAction(payload, battle);
+              } else if constexpr (std::is_same_v<T, std::size_t>) {
+                const auto commands = battle.RequestCommands(std::vector{payload});
+                assert(commands.size() == 1);
+                return TranslateAction(commands.at(0), battle);
               } else {
                 // TODO: query immediate action actionables
                 assert(false);
@@ -175,7 +179,8 @@ public:
     }
   }
 
-  void ResolveAction(const TAction &action, TBattle &battle, std::size_t max_depth = 100) {
+  void
+  ResolveAction(const TAction &action, TBattle &battle, std::size_t max_depth = 100) {
     std::stack<TAction> to_resolve;
     to_resolve.push(action);
 

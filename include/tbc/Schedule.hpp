@@ -19,6 +19,12 @@ struct Schedule {
     }
   }
 
+  Schedule(std::vector<std::size_t> players) {
+    for (const auto &player : players) {
+      order.push_back(std::vector<TActionable>{TActionable{player}});
+    }
+  }
+
   [[nodiscard]] bool Empty() const { return order.empty(); }
 
   void Next() {

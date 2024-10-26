@@ -62,12 +62,14 @@ struct Comms {
           players.at(i).PostLog(message.value());
         }
       }
-      const auto spectator_message = log.Retrieve(std::nullopt);
-      if (spectator_message.has_value()) {
-        spectator_log_output_(spectator_message.value());
+      if (spectator_log_output_) {
+        const auto spectator_message = log.Retrieve(std::nullopt);
+        if (spectator_message.has_value()) {
+          spectator_log_output_(spectator_message.value());
+        }
       }
-      log_buffer_.erase(log_buffer_.begin());
     }
+    log_buffer_.clear();
   }
 };
 } // namespace ngl::tbc
