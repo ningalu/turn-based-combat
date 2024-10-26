@@ -10,28 +10,6 @@
 
 using namespace ngl::tbc::sample::nac;
 
-[[nodiscard]] std::optional<NACCommand> string_to_coord(const std::string &in) {
-  const auto parts = ngl::tbc::split(std::string_view{in}, ',');
-  if (parts.size() != 2) {
-    return std::nullopt;
-  }
-
-  NACCommand out;
-  for (auto const [addr, index] : std::vector<std::pair<uint8_t *, std::size_t>>{{&out.x, 0U}, {&out.y, 1U}}) {
-    int val;
-    auto [ptr, ec] = std::from_chars(parts.at(index).data(), parts.at(index).data() + parts.at(index).size(), val);
-    if (ec != std::errc()) {
-      return std::nullopt;
-    }
-    if ((val < 0) || (val > 2)) {
-      return std::nullopt;
-    }
-    *addr = static_cast<std::uint8_t>(val);
-  }
-
-  return out;
-}
-
 int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
   // TODO: better helper rand facilities
   srand(static_cast<unsigned int>(time(NULL)));

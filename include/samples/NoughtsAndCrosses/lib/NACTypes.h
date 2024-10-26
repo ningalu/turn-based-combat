@@ -3,9 +3,11 @@
 #include "tbc/BattleTypes.hpp"
 
 namespace ngl::tbc::sample::nac {
+
 struct NACCommand {
   uint8_t x, y;
 };
+[[nodiscard]] std::optional<NACCommand> string_to_coord(const std::string &in);
 
 enum class NACPlayer {
   NOUGHT,
@@ -36,6 +38,6 @@ using EffectResult   = NACTypes::TEffectResult;
 
 [[nodiscard]] std::vector<Action> ActionEndHandler(ngl::tbc::DefaultEvents::PlannedActionEnd e, Game &battle);
 
-[[nodiscard]] std::optional<std::vector<NACPlayer>> GameEnded(const Game &battle);
+[[nodiscard]] std::optional<std::vector<NACPlayer>> GameEnded(const NACState &battle);
 
 } // namespace ngl::tbc::sample::nac

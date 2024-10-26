@@ -17,6 +17,9 @@ add_executable(
     source/tbc/LayoutTest.cpp
     source/tbc/TargetTest.cpp
     source/tbc/LogTest.cpp
+
+    source/samples/NoughtsAndCrosses/NACTypesTest.cpp
+    source/samples/NoughtsAndCrosses/NACIntegrationTest.cpp
 )
 
 target_link_libraries(

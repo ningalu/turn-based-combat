@@ -1,8 +1,33 @@
 #include "samples/NoughtsAndCrosses/lib/NACTypes.h"
 
+#include <charconv>
 #include <stdexcept>
 
+#include "util/util.h"
+
 namespace ngl::tbc::sample::nac {
+
+[[nodiscard]] std::optional<NACCommand> string_to_coord(const std::string &in) {
+  const auto parts = ngl::tbc::split(std::string_view{in}, ',');
+  if (parts.size() != 2) {
+    return std::nullopt;
+  }
+
+  NACCommand out;
+  for (auto const [addr, index] : std::vector<std::pair<uint8_t *, std::size_t>>{{&out.x, 0U}, {&out.y, 1U}}) {
+    int val;
+    auto [ptr, ec] = std::from_chars(parts.at(index).data(), parts.at(index).data() + parts.at(index).size(), val);
+    if (ec != std::errc()) {
+      return std::nullopt;
+    }
+    if ((val < 0) || (val > 2)) {
+      return std::nullopt;
+    }
+    *addr = static_cast<std::uint8_t>(val);
+  }
+
+  return out;
+}
 
 [[nodiscard]] char str(NACPlayer p) {
   switch (p) {
@@ -78,7 +103,7 @@ namespace ngl::tbc::sample::nac {
         if (i == 0) {
           EffectResult out;
           i++;
-          const auto winner = GameEnded(battle);
+          const auto winner = GameEnded(battle.state);
           if (winner.has_value()) {
             std::vector<std::size_t> winners;
             for (const auto w : winner.value()) {
@@ -96,31 +121,31 @@ namespace ngl::tbc::sample::nac {
   };
 }
 
-[[nodiscard]] std::optional<std::vector<NACPlayer>> GameEnded(const Game &battle) {
+[[nodiscard]] std::optional<std::vector<NACPlayer>> GameEnded(const NACState &battle) {
   for (std::size_t i = 0; i < 3; i++) {
     // row is equal
-    if ((battle.state.board[i][0].has_value()) && (battle.state.board[i][0] == battle.state.board[i][1]) && (battle.state.board[i][0] == battle.state.board[i][2])) {
-      return std::vector{battle.state.board[i][0].value()};
+    if ((battle.board[i][0].has_value()) && (battle.board[i][0] == battle.board[i][1]) && (battle.board[i][0] == battle.board[i][2])) {
+      return std::vector{battle.board[i][0].value()};
     }
 
     // column is equal
-    if ((battle.state.board[0][i].has_value()) && (battle.state.board[0][i] == battle.state.board[1][i]) && (battle.state.board[0][i] == battle.state.board[2][i])) {
-      return std::vector{battle.state.board[0][i].value()};
+    if ((battle.board[0][i].has_value()) && (battle.board[0][i] == battle.board[1][i]) && (battle.board[0][i] == battle.board[2][i])) {
+      return std::vector{battle.board[0][i].value()};
     }
   }
 
-  if ((battle.state.board[0][0].has_value()) && (battle.state.board[0][0] == battle.state.board[1][1]) && (battle.state.board[0][0] == battle.state.board[2][2])) {
-    return std::vector{battle.state.board[0][0].value()};
+  if ((battle.board[0][0].has_value()) && (battle.board[0][0] == battle.board[1][1]) && (battle.board[0][0] == battle.board[2][2])) {
+    return std::vector{battle.board[0][0].value()};
   }
 
-  if ((battle.state.board[2][0].has_value()) && (battle.state.board[2][0] == battle.state.board[1][1]) && (battle.state.board[2][0] == battle.state.board[0][2])) {
-    return std::vector{battle.state.board[2][0].value()};
+  if ((battle.board[2][0].has_value()) && (battle.board[2][0] == battle.board[1][1]) && (battle.board[2][0] == battle.board[0][2])) {
+    return std::vector{battle.board[2][0].value()};
   }
 
   // check board still has empty spaces
   for (std::size_t x = 0; x < 3; x++) {
     for (std::size_t y = 0; y < 3; y++) {
-      if (!battle.state.board[x][y].has_value()) {
+      if (!battle.board[x][y].has_value()) {
         return std::nullopt;
       }
     }
