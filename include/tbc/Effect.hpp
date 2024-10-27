@@ -17,16 +17,19 @@ enum class EffectStatus {
   STOP,
 };
 
-template <typename TCommands, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
-using EffectResult = std::tuple<EffectStatus, std::optional<std::vector<std::size_t>>, std::vector<Actionable<TCommands, TEvent, TSimultaneousActionStrategy>>>;
-
+template <typename TCommand, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
+struct EffectResult {
+  EffectStatus status;
+  std::optional<std::vector<std::size_t>> winners;
+  std::vector<Actionable<TCommand, TEvent, TSimultaneousActionStrategy>> queued_actions;
+};
 // TODO: you technically should be able to define your own transfer function shouldnt you
-template <typename TBattle, typename TCommands, typename TEvent>
+template <typename TBattle, typename TCommand, typename TEvent>
 class Effect {
   constexpr static auto TSimultaneousActionStrategy = TBattle::SimultaneousActionStrategy;
 
 public:
-  using Result           = EffectResult<TCommands, TEvent, TSimultaneousActionStrategy>;
+  using Result           = EffectResult<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TransferFunction = std::function<Result(TBattle &)>;
 
   explicit Effect(TransferFunction f) : transfer_function{std::move(f)} {}

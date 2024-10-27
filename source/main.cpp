@@ -105,7 +105,7 @@ MyEffect GetEffectWithIntEvent(std::size_t side, int state) {
     MyResult out;
     MyEvents e;
     e.payload = 2;
-    std::get<2>(out).push_back(MyActionable{e});
+    out.queued_actions.push_back(MyActionable{e});
     return out;
   }};
 }

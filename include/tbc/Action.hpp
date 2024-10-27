@@ -10,14 +10,14 @@
 #include "tbc/Target.hpp"
 
 namespace ngl::tbc {
-template <typename TBattle, typename TCommands, typename TEvent>
+template <typename TBattle, typename TCommand, typename TEvent>
 class Action {
-  using TEffect          = Effect<TBattle, TCommands, TEvent>;
-  using TAction          = Action<TBattle, TCommands, TEvent>;
+  using TEffect          = Effect<TBattle, TCommand, TEvent>;
+  using TAction          = Action<TBattle, TCommand, TEvent>;
   using TransferFunction = typename TEffect::TransferFunction;
 
 public:
-  using Result = typename Effect<TBattle, TCommands, TEvent>::Result;
+  using Result = typename Effect<TBattle, TCommand, TEvent>::Result;
 
 protected:
   using ActionImpl = std::function<std::optional<Result>(TBattle &)>;
