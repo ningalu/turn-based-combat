@@ -17,11 +17,15 @@ add_executable(
     source/tbc/LayoutTest.cpp
     source/tbc/TargetTest.cpp
     source/tbc/LogTest.cpp
+
+    source/samples/NoughtsAndCrosses/NACTypesTest.cpp
+    source/samples/NoughtsAndCrosses/NACIntegrationTest.cpp
 )
 
 target_link_libraries(
-    ngl-tbc-2_test PRIVATE
-    ngl-tbc_lib
+    ngl-tbc-2_test 
+    PUBLIC ngl-tbc_lib
+    PUBLIC ngl-tbc-samples-nac_lib
     Catch2::Catch2WithMain
 )
 target_compile_features(ngl-tbc-2_test PRIVATE cxx_std_20)

@@ -142,8 +142,9 @@ public:
   void RunTurn(TBattle &battle) {
     ResolveEvent<DefaultEvents::TurnStart>({}, battle);
 
-    while (!battle.current_turn_schedule.Empty()) {
+    while ((!battle.current_turn_schedule.Empty()) && (!battle.HasEnded())) {
       const auto actionable = battle.current_turn_schedule.order.at(0);
+      ResolveEvent<DefaultEvents::PlannedActionStart>({}, battle);
       // TODO: figure out configurable simultaneous/sequential actionable resolution
       const auto action = [&, this]() {
         if constexpr (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED) {
@@ -152,6 +153,10 @@ public:
               using T = std::decay_t<decltype(payload)>;
               if constexpr (std::is_same_v<T, TCommand>) {
                 return TranslateAction(payload, battle);
+              } else if constexpr (std::is_same_v<T, std::size_t>) {
+                const auto commands = battle.RequestCommands(std::vector{payload});
+                assert(commands.size() == 1);
+                return TranslateAction(commands.at(0), battle);
               } else {
                 // TODO: query immediate action actionables
                 assert(false);
@@ -167,6 +172,8 @@ public:
 
       ResolveAction(action, battle);
       battle.current_turn_schedule.Next();
+
+      ResolveEvent<DefaultEvents::PlannedActionEnd>({}, battle);
     }
 
     // TODO: temp, figure out how to control post battle effects
