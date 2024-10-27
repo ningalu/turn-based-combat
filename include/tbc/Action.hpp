@@ -5,58 +5,36 @@
 #include <optional>
 #include <variant>
 
-#include "tbc/DeferredEffect.hpp"
-#include "tbc/DeferredUserEffect.hpp"
+#include "tbc/Effect.hpp"
 #include "tbc/Slot.h"
 #include "tbc/Target.hpp"
-#include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
-template <typename TBattle, typename TCommands, typename TEvent>
+template <typename TBattle, typename TCommand, typename TEvent>
 class Action {
+  using TEffect          = Effect<TBattle, TCommand, TEvent>;
+  using TAction          = Action<TBattle, TCommand, TEvent>;
+  using TransferFunction = typename TEffect::TransferFunction;
+
 public:
-  using TDeferredEffect     = DeferredEffect<TBattle, TCommands, TEvent>;
-  using TDeferredUserEffect = DeferredUserEffect<TBattle, TCommands, TEvent>;
-  using Result              = typename Effect<TBattle, TCommands, TEvent>::Result;
-  using Deferred            = std::variant<TDeferredEffect, TDeferredUserEffect>;
+  using Result = typename Effect<TBattle, TCommand, TEvent>::Result;
 
 protected:
-  using TAction    = Action<TBattle, TCommands, TEvent>;
-  using TDecorator = std::function<Result(TBattle &)>;
-
-  template <typename T>
-    requires(std::is_same_v<T, TDeferredEffect> || std::is_same_v<T, TDeferredUserEffect>)
-  [[nodiscard]] static std::vector<Deferred> DeferredVec(const std::vector<T> &dv) {
-    std::vector<Deferred> out;
-    out.reserve(dv.size());
-    for (const auto &e : dv) {
-      out.push_back(Deferred{e});
-    }
-    return out;
-  }
-
   using ActionImpl = std::function<std::optional<Result>(TBattle &)>;
 
 public:
-  TDecorator pre;
-  TDecorator post;
+  TransferFunction pre;
+  TransferFunction post;
 
-  explicit Action(const std::vector<TDeferredEffect> &d) : TAction(DeferredVec(d)) {}
-  explicit Action(const std::vector<TDeferredUserEffect> &d) : TAction(DeferredVec(d)) {}
-  explicit Action(const std::vector<Deferred> &d) : TAction(DeferredEffectsImpl(d)) {}
+  explicit Action(const TEffect &effects) : TAction(std::vector<TEffect>{effects}) {}
+  explicit Action(const std::vector<TEffect> &effects) : TAction(EffectsImpl(effects)) {}
   explicit Action(ActionImpl impl) : started_{false}, finished_{false}, cancelled_{false}, action_impl_{std::move(impl)} {}
 
-  // TODO: should this be taking a copy? i only really want the lambda capture to copy this
-  [[nodiscard]] static std::function<std::optional<Result>(TBattle &)> DeferredEffectsImpl(std::vector<Deferred> deferred) {
-    return [=](TBattle &battle) mutable -> std::optional<Result> {
-      std::optional<Result> out;
-
-      if (!deferred.empty()) {
-        out = std::visit([&battle](auto &&payload) {
-          return payload.Apply(battle);
-        },
-                         deferred.front());
-        deferred.erase(deferred.begin());
+  [[nodiscard]] static std::function<std::optional<Result>(TBattle &)> EffectsImpl(std::vector<TEffect> effects) {
+    return [effects](TBattle &battle) mutable -> std::optional<Result> {
+      if (!effects.empty()) {
+        Result out = effects.front().Apply(battle);
+        effects.erase(effects.begin());
         return out;
       }
 
@@ -66,6 +44,10 @@ public:
 
   [[nodiscard]] std::optional<Result> ApplyNext(TBattle &battle) {
     assert(action_impl_);
+
+    if (cancelled_) {
+      return std::nullopt;
+    }
 
     if (!started_) {
       started_ = true;
@@ -80,7 +62,6 @@ public:
       return res.value();
     }
 
-    // main action impl is finished
     if (!finished_) {
       finished_ = true;
       if (post) {

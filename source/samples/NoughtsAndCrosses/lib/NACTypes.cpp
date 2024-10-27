@@ -110,7 +110,7 @@ namespace ngl::tbc::sample::nac {
               winners.push_back(w == NACPlayer::NOUGHT ? 0U : 1U);
             }
 
-            std::get<std::optional<std::vector<std::size_t>>>(out) = winners;
+            out.winners = winners;
           }
           return out;
         } else {

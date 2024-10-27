@@ -10,49 +10,37 @@
 
 namespace ngl::tbc {
 
-namespace EffectResult {
-
-enum class Status {
+enum class EffectStatus {
   SUCCESS,
   SKIPPED,
   FAILED,
   STOP,
 };
 
-struct Winners {
-  std::vector<std::size_t> winners;
+template <typename TCommand, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
+struct EffectResult {
+  EffectStatus status;
+  std::optional<std::vector<std::size_t>> winners;
+  std::vector<Actionable<TCommand, TEvent, TSimultaneousActionStrategy>> queued_actions;
 };
-
-template <typename TEvent>
-struct Events {
-  std::vector<TEvent> events;
-};
-
-template <typename TCommands, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
-// TODO: are events actionable? i think so? that would solve the issue of buffered commands/event queue order
-using Result = std::tuple<Status, std::optional<std::vector<std::size_t>>, std::vector<Actionable<TCommands, TEvent, TSimultaneousActionStrategy>>>;
-} // namespace EffectResult
-
-template <typename TBattle, typename TCommands, typename TEvent>
+// TODO: you technically should be able to define your own transfer function shouldnt you
+template <typename TBattle, typename TCommand, typename TEvent>
 class Effect {
   constexpr static auto TSimultaneousActionStrategy = TBattle::SimultaneousActionStrategy;
 
 public:
-  using Result = EffectResult::Result<TCommands, TEvent, TSimultaneousActionStrategy>;
+  using Result           = EffectResult<TCommand, TEvent, TSimultaneousActionStrategy>;
+  using TransferFunction = std::function<Result(TBattle &)>;
 
-  explicit Effect(std::function<Result(TBattle &, const std::vector<Target> &)> f) : xfer_{std::move(f)} {}
+  explicit Effect(TransferFunction f) : transfer_function{std::move(f)} {}
 
-  Result Apply(TBattle &battle, const std::vector<Target> &targets) {
-    return CheckBattle(battle, xfer_(battle, targets));
-  }
-
-  [[nodiscard]] Result CheckBattle(const TBattle &battle, const Result &initial_result) {
-    return outcome_check_ ? outcome_check_(battle, initial_result) : initial_result;
+  Result Apply(TBattle &battle) {
+    assert(transfer_function);
+    return transfer_function(battle);
   }
 
 private:
-  std::function<Result(TBattle &, const std::vector<Target> &)> xfer_;
-  std::function<Result(const TBattle &, const Result &)> outcome_check_;
+  TransferFunction transfer_function;
 };
 
 } // namespace ngl::tbc
