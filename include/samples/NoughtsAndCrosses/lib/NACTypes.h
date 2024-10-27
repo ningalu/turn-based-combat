@@ -6,6 +6,7 @@ namespace ngl::tbc::sample::nac {
 
 struct NACCommand {
   uint8_t x, y;
+  [[nodiscard]] bool operator==(const NACCommand &) const noexcept = default;
 };
 [[nodiscard]] std::optional<NACCommand> string_to_coord(const std::string &in);
 
