@@ -4,13 +4,10 @@
 #include "tbc/Action.hpp"
 #include "tbc/Battle.hpp"
 #include "tbc/BattleScheduler.hpp"
-#include "tbc/DeferredEffect.hpp"
-#include "tbc/DeferredUserEffect.hpp"
 #include "tbc/Effect.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Schedule.hpp"
-#include "tbc/UserEffect.hpp"
 
 namespace ngl::tbc {
 template <typename TUnit_, typename TBattleState_, typename TCommand_, typename TCommandResult_, typename TEvent_, SimultaneousActionStrategy TSimultaneousActionStrategy = SimultaneousActionStrategy::DISABLED>
@@ -34,11 +31,8 @@ struct BattleTypes {
 
   using TEventHandler = EventHandler<TBattle, TCommand, TEvent>;
 
-  using TEffect             = Effect<TBattle, TCommand, TEvent>;
-  using TUserEffect         = UserEffect<TBattle, TCommand, TEvent>;
-  using TDeferredEffect     = DeferredEffect<TBattle, TCommand, TEvent>;
-  using TDeferredUserEffect = DeferredUserEffect<TBattle, TCommand, TEvent>;
-  using TEffectResult       = typename TEffect::Result;
+  using TEffect       = Effect<TBattle, TCommand, TEvent>;
+  using TEffectResult = typename TEffect::Result;
 
   using TAction     = Action<TBattle, TCommand, TEvent>;
   using TActionable = Actionable<TCommand, TEvent, TSimultaneousActionStrategy>;

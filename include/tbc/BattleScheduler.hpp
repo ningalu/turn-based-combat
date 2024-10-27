@@ -27,6 +27,7 @@ class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
   using TBattle         = Battle<TState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
   using TSchedule       = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
+  using TEffect         = Effect<TBattle, TCommand, TEvent>;
   using TAction         = Action<TBattle, TCommand, TEvent>;
 
   template <SimultaneousActionStrategy TSimultaneousActionStrategy>
@@ -160,7 +161,7 @@ public:
               } else {
                 // TODO: query immediate action actionables
                 assert(false);
-                return TAction{std::vector<typename TAction::Deferred>{}};
+                return TAction{std::vector<TEffect>{}};
               }
             },
             actionable.at(0)
@@ -208,7 +209,7 @@ public:
       }
 
       // TODO: this is a placeholder. figure out something more flexible later
-      if (status == EffectResult::Status::FAILED) {
+      if (status == EffectStatus::FAILED) {
         to_resolve.pop();
         continue;
       }

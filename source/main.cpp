@@ -12,15 +12,12 @@
 #include "tbc/BattleScheduler.hpp"
 #include "tbc/Command.hpp"
 #include "tbc/CommandPayloadSet.hpp"
-#include "tbc/DeferredEffect.hpp"
-#include "tbc/DeferredUserEffect.hpp"
 #include "tbc/Effect.hpp"
 #include "tbc/Event.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Slot.h"
 #include "tbc/Target.hpp"
-#include "tbc/UserEffect.hpp"
 
 #include "tbc/BattleTypes.hpp"
 
@@ -46,10 +43,7 @@ using MyBattle       = MyBattleTypes::TBattle;
 using MyScheduler    = MyBattleTypes::TBattleScheduler;
 using MyEventHandler = MyBattleTypes::TEventHandler;
 
-using MyEffect        = MyBattleTypes::TEffect;
-using MyDefEffect     = MyBattleTypes::TDeferredEffect;
-using MyUserEffect    = MyBattleTypes::TUserEffect;
-using MyDefUserEffect = MyBattleTypes::TDeferredUserEffect;
+using MyEffect = MyBattleTypes::TEffect;
 
 using MyResult = MyBattleTypes::TEffectResult;
 using MyCmdSet = MyBattleTypes::TCommandPayloadTypeSet;
@@ -63,7 +57,7 @@ MyEffect DebugEffect(int n) {
 }
 
 MyEffect end_battle_effect() {
-  return MyEffect{[](MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &t) {
+  return MyEffect{[](MyBattle &b) {
     std::cout << "debug effect\n";
     b.EndBattle({0});
     return MyResult{};
@@ -71,7 +65,7 @@ MyEffect end_battle_effect() {
 }
 
 MyEffect resolve_rps_effect() {
-  return MyEffect{[](MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
+  return MyEffect{[](MyBattle &b) {
     int win_table[3][3] = {{0, -1, 1}, {1, 0, -1}, {-1, 1, 0}}; // NOLINT TODO: find a way to turn off warnings for the executable project
 
     const auto outcome = win_table[b.state.p1_state][b.state.p2_state];
@@ -84,20 +78,20 @@ MyEffect resolve_rps_effect() {
     return MyResult{}; }};
 }
 
-MyUserEffect GetEffect(int state) {
-  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
-    switch (u.side) {
+MyEffect GetEffect(std::size_t side, int state) {
+  return MyEffect{[=](MyBattle &b) {
+    switch (side) {
       case 0: b.state.p1_state = state; break;
       case 1: b.state.p2_state = state; break;
       default: throw std::logic_error{"invalid side"};
     }
-    std::cout << "setting " << u.side << " to " << state << "\n";
+    std::cout << "setting " <<side << " to " << state << "\n";
     return MyResult{}; }};
 }
 
-MyUserEffect GetEffectWithIntEvent(int state) {
-  return MyUserEffect{[=](ngl::tbc::Slot::Index u, MyBattle &b, [[maybe_unused]] const std::vector<ngl::tbc::Target> &unused) {
-    switch (u.side) {
+MyEffect GetEffectWithIntEvent(std::size_t side, int state) {
+  return MyEffect{[=](MyBattle &b) {
+    switch (side) {
     case 0:
       b.state.p1_state = state;
       break;
@@ -107,7 +101,7 @@ MyUserEffect GetEffectWithIntEvent(int state) {
     default:
       throw std::logic_error{"invalid side"};
     }
-    std::cout << "setting " << u.side << " to " << state << "\n";
+    std::cout << "setting " << side << " to " << state << "\n";
     MyResult out;
     MyEvents e;
     e.payload = 2;
@@ -117,22 +111,20 @@ MyUserEffect GetEffectWithIntEvent(int state) {
 }
 
 using MyAction = MyBattleTypes::TAction;
-MyAction GetAction(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Target> &targets, int state) {
+MyAction GetAction(std::size_t user, int state) {
   if (state > 2) {
     throw std::logic_error{"invalid state"};
   }
 
-  MyDefUserEffect e{user, GetEffect(state), targets};
-  return MyAction{std::vector<MyDefUserEffect>{e}};
+  return MyAction{GetEffect(user, state)};
 }
 
-MyAction GetActionWithIntEffect(ngl::tbc::Slot::Index user, const std::vector<ngl::tbc::Target> &targets, int state) {
+MyAction GetActionWithIntEffect(std::size_t user, int state) {
   if (state > 2) {
     throw std::logic_error{"invalid state"};
   }
 
-  MyDefUserEffect e{user, {GetEffectWithIntEvent(state)}, targets};
-  return MyAction{std::vector<MyDefUserEffect>{e}};
+  return MyAction{GetEffectWithIntEvent(user, state)};
 }
 
 std::function<std::vector<MyCommandPayload>(const MyCmdSet &)> GetComms(int n) {
@@ -171,7 +163,7 @@ auto default_translator = [](const MyCommands &command, [[maybe_unused]] const M
   },
                         command.payload);
 
-  return GetAction({command.player, 0}, {}, move);
+  return GetAction(command.player, move);
 };
 
 auto int_event_translator = [](const MyCommands &command, [[maybe_unused]] const MyBattle &unused) {
@@ -189,16 +181,16 @@ auto int_event_translator = [](const MyCommands &command, [[maybe_unused]] const
   },
                         command.payload);
 
-  return GetActionWithIntEffect({command.player, 0}, {}, move);
+  return GetActionWithIntEffect(command.player, move);
 };
 
 std::vector<MyAction> default_turnend([[maybe_unused]] ngl::tbc::DefaultEvents::TurnEnd unused1, [[maybe_unused]] const MyBattle &unused2) {
-  return {MyAction{std::vector<MyDefEffect>{MyDefEffect{resolve_rps_effect(), {}}}}};
+  return {MyAction{std::vector<MyEffect>{MyEffect{resolve_rps_effect()}}}};
 }
 
 std::vector<MyAction> default_intevent(int n, [[maybe_unused]] const MyBattle &unused) {
   std::cout << "int event received: " << n << "\n";
-  return {MyAction{std::vector<MyDefEffect>{MyDefEffect{{DebugEffect(n)}, {}}}}};
+  return {MyAction{std::vector<MyEffect>{MyEffect{{DebugEffect(n)}}}}};
 }
 
 void test_battle_end();

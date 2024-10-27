@@ -12,13 +12,13 @@ using TestCommandResults = ngl::tbc::CommandResult<bool>;
 using TestEvents         = ngl::tbc::Event<int, double>;
 using TestBattle         = ngl::tbc::Battle<TestBattleState, TestCommands, TestCommandResults, TestEvents, ngl::tbc::SimultaneousActionStrategy::DISABLED>;
 
-using TestDefEffect = ngl::tbc::DeferredEffect<TestBattle, TestCommands, TestEvents>;
-using TestAction    = ngl::tbc::Action<TestBattle, TestCommands, TestEvents>;
+using TestEffect = ngl::tbc::Effect<TestBattle, TestCommands, TestEvents>;
+using TestAction = ngl::tbc::Action<TestBattle, TestCommands, TestEvents>;
 TEST_CASE("Event Handler can be instantiated", "[EventHandler]") {
 
   ngl::tbc::EventHandler<TestBattle, TestCommands, TestEvents> eh;
   REQUIRE_FALSE(eh.HasHandler<int>());
-  const auto action = TestAction{std::vector<TestDefEffect>{}};
+  const auto action = TestAction{std::vector<TestEffect>{}};
   std::vector<int> handler_output;
   const auto handler = [&](int i, [[maybe_unused]] TestBattle &battle) { handler_output.push_back(i); return std::vector<TestAction>{action}; };
   REQUIRE_NOTHROW(eh.RegisterHandler<int>(handler));
