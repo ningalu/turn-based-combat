@@ -16,8 +16,6 @@
 #include "tbc/Event.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerComms.hpp"
-#include "tbc/Slot.h"
-#include "tbc/Target.hpp"
 
 #include "tbc/BattleTypes.hpp"
 

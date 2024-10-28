@@ -14,7 +14,7 @@ namespace ngl::tbc::sample::nac {
   }
 
   NACCommand out;
-  for (auto const [addr, index] : std::vector<std::pair<uint8_t *, std::size_t>>{{&out.x, 0U}, {&out.y, 1U}}) {
+  for (auto const [addr, index] : std::vector<std::pair<std::size_t *, std::size_t>>{{&out.y, 0U}, {&out.x, 1U}}) {
     int val;
     auto [ptr, ec] = std::from_chars(parts.at(index).data(), parts.at(index).data() + parts.at(index).size(), val);
     if (ec != std::errc()) {
@@ -23,7 +23,7 @@ namespace ngl::tbc::sample::nac {
     if ((val < 0) || (val > 2)) {
       return std::nullopt;
     }
-    *addr = static_cast<std::uint8_t>(val);
+    *addr = static_cast<std::size_t>(val);
   }
 
   return out;

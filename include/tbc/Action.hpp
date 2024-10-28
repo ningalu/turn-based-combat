@@ -6,8 +6,6 @@
 #include <variant>
 
 #include "tbc/Effect.hpp"
-#include "tbc/Slot.h"
-#include "tbc/Target.hpp"
 
 namespace ngl::tbc {
 template <typename TBattle, typename TCommand, typename TEvent>

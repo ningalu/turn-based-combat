@@ -5,8 +5,6 @@
 
 #include "tbc/Actionable.hpp"
 #include "tbc/Battle.hpp"
-#include "tbc/Slot.h"
-#include "tbc/Target.hpp"
 
 namespace ngl::tbc {
 
