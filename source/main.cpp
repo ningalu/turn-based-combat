@@ -35,7 +35,7 @@ struct MyBattleState {
 
 using MyEvents = ngl::tbc::Event<int, double>;
 
-using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, MyCommands, MyCommandResult, MyEvents>;
+using MyBattleTypes = ngl::tbc::BattleTypes<MyBattleState, MyCommands, MyCommandResult, MyEvents>;
 
 using MyBattle       = MyBattleTypes::TBattle;
 using MyScheduler    = MyBattleTypes::TBattleScheduler;

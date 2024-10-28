@@ -17,6 +17,7 @@ include(cmake/variables.cmake)
 
 add_subdirectory(source/tbc)
 add_subdirectory(source/samples/NoughtsAndCrosses)
+add_subdirectory(source/samples/RockPaperScissors)
 
 # ---- Declare executable ----
 

@@ -10,9 +10,8 @@
 #include "tbc/Schedule.hpp"
 
 namespace ngl::tbc {
-template <typename TUnit_, typename TBattleState_, typename TCommand_, typename TCommandResult_, typename TEvent_, SimultaneousActionStrategy TSimultaneousActionStrategy = SimultaneousActionStrategy::DISABLED>
+template <typename TBattleState_, typename TCommand_, typename TCommandResult_, typename TEvent_, SimultaneousActionStrategy TSimultaneousActionStrategy = SimultaneousActionStrategy::DISABLED>
 struct BattleTypes {
-  using TUnit          = TUnit_;
   using TBattleState   = TBattleState_;
   using TCommand       = TCommand_;
   using TCommandResult = TCommandResult_;

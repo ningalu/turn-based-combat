@@ -18,7 +18,7 @@ struct NACState {
   [[nodiscard]] std::string str() const;
 };
 
-using NACTypes       = BattleTypes<int, NACState, Command<NACCommand>, CommandResult<bool>, Event<>>;
+using NACTypes       = BattleTypes<NACState, Command<NACCommand>, CommandResult<bool>, Event<>>;
 using Game           = NACTypes::TBattle;
 using Command        = NACTypes::TCommand;
 using CommandPayload = NACTypes::TCommandPayload;

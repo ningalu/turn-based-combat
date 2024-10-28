@@ -61,7 +61,7 @@ public:
   template <typename TSpecificEvent>
   [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TSpecificEvent &e, TBattle &b) const {
     std::optional<std::vector<TAction>> out = std::nullopt;
-    // .template looks gross as fuck
+    // .template looks gross
     if (event_handlers_.template HasHandler<TSpecificEvent>()) {
       out = event_handlers_.template PostEvent<TSpecificEvent>(e, b);
     }
@@ -247,10 +247,11 @@ public:
           } else {
             // TODO: as above
             std::vector<TCommand> actionable_commands;
-            for (const auto action : *it) {
-              actionable_commands.push_back(std::get<TCommand>(action));
+            // TODO: naming is getting hard at this scope
+            for (const auto actable : *it) {
+              actionable_commands.push_back(std::get<TCommand>(actable));
             }
-            return TranslateAction(actionable_commands, battle);
+            to_resolve.push(TranslateAction(actionable_commands, battle));
           }
         }
       }
