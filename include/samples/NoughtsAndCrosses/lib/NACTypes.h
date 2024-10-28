@@ -2,6 +2,10 @@
 
 #include "tbc/BattleTypes.hpp"
 #include "tbc/util/layout/GridLayout.hpp"
+
+// Noughts and Crosses is an example of a game with perfectly sequential Turn order using
+// only immediate commands
+
 namespace ngl::tbc::sample::nac {
 
 using NACCommand = ngl::tbc::GridLayoutIndex;
@@ -18,7 +22,7 @@ struct NACState {
   [[nodiscard]] std::string str() const;
 };
 
-using NACTypes       = BattleTypes<int, NACState, Command<NACCommand>, CommandResult<bool>, Event<>>;
+using NACTypes       = BattleTypes<NACState, Command<NACCommand>, CommandResult<bool>, Event<>>;
 using Game           = NACTypes::TBattle;
 using Command        = NACTypes::TCommand;
 using CommandPayload = NACTypes::TCommandPayload;

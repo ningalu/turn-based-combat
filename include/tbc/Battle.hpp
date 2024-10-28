@@ -91,6 +91,7 @@ public:
     std::size_t attempts = 1000 // NOLINT related to #24
   ) {
     std::vector<TPlayerCommandRequest> requests;
+    requests.reserve(players.size());
     for (const auto player : players) {
       requests.push_back({player, TCommandPayloadTypeSet{true}});
     }

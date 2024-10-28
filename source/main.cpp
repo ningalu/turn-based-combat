@@ -35,7 +35,7 @@ struct MyBattleState {
 
 using MyEvents = ngl::tbc::Event<int, double>;
 
-using MyBattleTypes = ngl::tbc::BattleTypes<int, MyBattleState, MyCommands, MyCommandResult, MyEvents>;
+using MyBattleTypes = ngl::tbc::BattleTypes<MyBattleState, MyCommands, MyCommandResult, MyEvents>;
 
 using MyBattle       = MyBattleTypes::TBattle;
 using MyScheduler    = MyBattleTypes::TBattleScheduler;
@@ -103,7 +103,7 @@ MyEffect GetEffectWithIntEvent(std::size_t side, int state) {
     MyResult out;
     MyEvents e;
     e.payload = 2;
-    out.queued_actions.push_back(MyActionable{e});
+    out.queued_actions.emplace_back(MyActionable{e});
     return out;
   }};
 }

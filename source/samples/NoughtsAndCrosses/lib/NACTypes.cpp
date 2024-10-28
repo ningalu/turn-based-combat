@@ -76,7 +76,7 @@ namespace ngl::tbc::sample::nac {
 }
 
 [[nodiscard]] Action TranslateAction(const Command &command, [[maybe_unused]] const Game &battle_arg) {
-  // TODO: refactor effects so you dont haev to rig this shit up by hand
+  // TODO: refactor effects so you dont haev to rig this up by hand
   int run = 0;
   return Action{[command, run](Game &battle) mutable -> std::optional<EffectResult> {
     if (run == 0) {

@@ -45,7 +45,9 @@ class BattleScheduler {
   using TEffect         = Effect<TBattle, TCommand, TEvent>;
   using TAction         = Action<TBattle, TCommand, TEvent>;
 
-  using TActionTranslator = std::function<TAction(const typename detail::ActionTranslatorHelper<TCommand, TSimultaneousActionStrategy>::ActionFrom &, const TBattle &)>;
+  using TCommandsToActions = typename detail::ActionTranslatorHelper<TCommand, TSimultaneousActionStrategy>::ActionFrom;
+  // TODO: genericise the singular/multiple actionables/commands idea
+  using TActionTranslator = std::function<TAction(const TCommandsToActions &, const TBattle &)>;
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
   using TScheduleGenerator = std::function<TSchedule(TBattle &, const std::vector<TCommand> &, std::size_t)>;
@@ -59,7 +61,7 @@ public:
   template <typename TSpecificEvent>
   [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TSpecificEvent &e, TBattle &b) const {
     std::optional<std::vector<TAction>> out = std::nullopt;
-    // .template looks gross as fuck
+    // .template looks gross
     if (event_handlers_.template HasHandler<TSpecificEvent>()) {
       out = event_handlers_.template PostEvent<TSpecificEvent>(e, b);
     }
@@ -98,12 +100,12 @@ public:
     action_translator_ = translator;
   }
 
-  [[nodiscard]] TAction TranslateAction(const TCommand &command, const TBattle &battle) const {
+  [[nodiscard]] TAction TranslateAction(const TCommandsToActions &command, const TBattle &battle) const {
     assert(action_translator_);
     return action_translator_(command, battle);
   }
 
-  [[nodiscard]] std::vector<TAction> TranslateActions(const std::vector<TCommand> &commands, const TBattle &battle) const {
+  [[nodiscard]] std::vector<TAction> TranslateActions(const std::vector<TCommandsToActions> &commands, const TBattle &battle) const {
     assert(action_translator_);
     std::vector<TAction> out;
     out.reserve(commands.size());
@@ -166,10 +168,16 @@ public:
                 return TAction{std::vector<TEffect>{}};
               }
             },
-            actionable.at(0)
+            actionable
           );
         } else {
-          return TranslateAction(actionable, battle);
+          // Actionable is std::vector<command | player | event>
+          // TODO: how to deal with this? new callbac kfor this scenario?
+          std::vector<TCommand> actionable_commands;
+          for (const auto actionable_value : actionable) {
+            actionable_commands.push_back(std::get<TCommand>(actionable_value));
+          }
+          return TranslateAction(actionable_commands, battle);
         }
       }();
 
@@ -190,7 +198,7 @@ public:
     to_resolve.push(action);
 
     std::size_t depth = 0;
-    while ((to_resolve.size() > 0) && (depth < max_depth)) {
+    while ((!to_resolve.empty()) && (depth < max_depth)) {
       depth++;
 
       const auto res = to_resolve.top().ApplyNext(battle);
@@ -201,7 +209,7 @@ public:
         continue;
       }
 
-      const auto [status, winners, actionables] = res.value();
+      const auto &[status, winners, actionables] = res.value();
 
       // Resolve the current action even if the battle has ended
       // TODO: make this configurable
@@ -218,21 +226,32 @@ public:
 
       if (!actionables.empty()) {
         for (auto it = actionables.rbegin(); it != actionables.rend(); it++) {
-          const auto dynamic_actions = std::visit([&, this](auto &&payload) -> std::vector<TAction> {
-            using T = std::decay_t<decltype(payload)>;
-            if constexpr (std::is_same_v<T, TCommand>) {
-              return std::vector<TAction>{TranslateAction(payload, battle)};
-            } else if constexpr (std::is_same_v<T, TEvent>) {
-              const auto event_actions = PostEvent(payload, battle);
-              return (event_actions.has_value() ? event_actions.value() : std::vector<TAction>{});
-            } else {
-              assert(false);
-              return std::vector<TAction>{};
+          if constexpr (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED) {
+
+            const auto dynamic_actions = std::visit([&, this](auto &&payload) -> std::vector<TAction> {
+              using T = std::decay_t<decltype(payload)>;
+              if constexpr (std::is_same_v<T, TCommand>) {
+                return std::vector<TAction>{TranslateAction(payload, battle)};
+              } else if constexpr (std::is_same_v<T, TEvent>) {
+                const auto event_actions = PostEvent(payload, battle);
+                return (event_actions.has_value() ? event_actions.value() : std::vector<TAction>{});
+              } else {
+                assert(false);
+                return std::vector<TAction>{};
+              }
+            },
+                                                    *it);
+            for (auto jt = dynamic_actions.rbegin(); jt != dynamic_actions.rend(); jt++) {
+              to_resolve.push(*jt);
             }
-          },
-                                                  *it);
-          for (auto jt = dynamic_actions.rbegin(); jt != dynamic_actions.rend(); jt++) {
-            to_resolve.push(*jt);
+          } else {
+            // TODO: as above
+            std::vector<TCommand> actionable_commands;
+            // TODO: naming is getting hard at this scope
+            for (const auto actable : *it) {
+              actionable_commands.push_back(std::get<TCommand>(actable));
+            }
+            to_resolve.push(TranslateAction(actionable_commands, battle));
           }
         }
       }
