@@ -1,11 +1,6 @@
 add_library(
     ngl-tbc_lib OBJECT
 
-    Target.cpp
-
-    Slot.cpp
-    Side.cpp
-    Layout.cpp
     Log.cpp
 )
 

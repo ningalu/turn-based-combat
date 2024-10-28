@@ -14,8 +14,7 @@ include(Catch)
 add_executable(
     ngl-tbc-2_test 
     source/tbc/EventHandlerTest.cpp
-    source/tbc/LayoutTest.cpp
-    source/tbc/TargetTest.cpp
+    source/tbc/RPGLayoutTest.cpp
     source/tbc/LogTest.cpp
 
     source/samples/NoughtsAndCrosses/NACTypesTest.cpp

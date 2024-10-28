@@ -1,13 +1,10 @@
 #include <string>
 
 #include "tbc/BattleTypes.hpp"
-
+#include "tbc/util/layout/GridLayout.hpp"
 namespace ngl::tbc::sample::nac {
 
-struct NACCommand {
-  uint8_t x, y;
-  [[nodiscard]] bool operator==(const NACCommand &) const noexcept = default;
-};
+using NACCommand = ngl::tbc::GridLayoutIndex;
 [[nodiscard]] std::optional<NACCommand> string_to_coord(const std::string &in);
 
 enum class NACPlayer {
@@ -17,7 +14,7 @@ enum class NACPlayer {
 [[nodiscard]] char str(NACPlayer p);
 
 struct NACState {
-  std::optional<NACPlayer> board[3][3];
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3U> board;
   [[nodiscard]] std::string str() const;
 };
 
