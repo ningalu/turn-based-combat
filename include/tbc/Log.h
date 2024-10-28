@@ -19,7 +19,7 @@ struct Log {
   void Insert(std::size_t player, const std::string &message);
   void Insert(const std::unordered_set<std::size_t> &players, const std::string &message);
   void Insert(std::nullopt_t spectator, const std::string &message);
-  void Insert(std::optional<std::size_t> spectator, const std::string &message);
+  void Insert(std::optional<std::size_t> index, const std::string &message);
   void Insert(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message);
 
   [[nodiscard]] std::optional<std::string> Retrieve(std::size_t player) const;

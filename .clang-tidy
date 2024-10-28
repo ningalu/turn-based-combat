@@ -5,6 +5,7 @@
 
 # array to pointer decay checks turned off as "assert" implementation macro does it 
 # cppcoreguidelines-pro-type-member-init off as clang-tidy has trouble with templated delegatign constructors
+# [google-runtime-references] off because its fuckign stupid?
 Checks: "*,\
   -google-readability-todo,\
   -altera-*,\
@@ -20,6 +21,7 @@ Checks: "*,\
   -hicpp-no-array-decay,\
   -cppcoreguidelines-pro-type-member-init,\
   -hicpp-member-init,\
+  -google-runtime-references,\
   -modernize-use-trailing-return-type"
 WarningsAsErrors: ''
 CheckOptions:

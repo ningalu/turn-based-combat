@@ -48,7 +48,7 @@ namespace ngl::tbc {
       result.push_back(column);
     }
   }
-  const std::string_view finalColumn(to_split.data() + indexCommaToRightOfColumn + 1, to_split.size() - indexCommaToRightOfColumn - 1);
+  const std::string_view finalColumn(to_split.data() + indexCommaToRightOfColumn + 1, to_split.size() - static_cast<std::size_t>(indexCommaToRightOfColumn) - 1);
   result.push_back(finalColumn);
   return result;
 }

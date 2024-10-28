@@ -16,13 +16,13 @@ struct Comms {
   std::vector<TPlayerComms> players;
   Log::Handler spectator_log_output_;
 
-  Comms(std::vector<TPlayerComms> players_) : players{std::move(players_)} {}
+  explicit Comms(std::vector<TPlayerComms> players_) : players{std::move(players_)} {}
 
   [[nodiscard]] std::size_t PlayerCount() const {
     return players.size();
   }
 
-  void SetSpectatorLogHandler(Log::Handler handler) { spectator_log_output_ = handler; }
+  void SetSpectatorLogHandler(Log::Handler handler) { spectator_log_output_ = std::move(handler); }
 
   void SetPlayerLogHandler(std::size_t player, Log::Handler handler) {
     if (player >= players.size()) {
@@ -31,7 +31,7 @@ struct Comms {
     players.at(player).SetLogHandler(handler);
   }
 
-  void SetMasterLogHandler(Log::Handler handler) { master_log_output_ = handler; }
+  void SetMasterLogHandler(Log::Handler handler) { master_log_output_ = std::move(handler); }
 
   void PostLog(const std::string &message) {
     log_buffer_.push_back(Log{players.size(), message});
@@ -43,9 +43,9 @@ struct Comms {
     log_buffer_.push_back(log);
   }
 
-  void PostLog(const std::unordered_set<std::optional<std::size_t>> &players, const std::string &message) {
-    Log log{players.size()};
-    log.Insert(players, message);
+  void PostLog(const std::unordered_set<std::optional<std::size_t>> &players_, const std::string &message) {
+    Log log{players_.size()};
+    log.Insert(players_, message);
     log_buffer_.push_back(log);
   }
 

@@ -37,25 +37,22 @@ void Log::Insert(const std::unordered_set<std::optional<std::size_t>> &players, 
 [[nodiscard]] std::optional<std::string> Log::Retrieve(std::size_t player) const {
   if (distribution.contains(std::optional{player})) {
     return distribution.at(player);
-  } else {
-    return std::nullopt;
   }
+  return std::nullopt;
 }
 
 [[nodiscard]] std::optional<std::string> Log::Retrieve(std::nullopt_t spectator) const {
   if (distribution.contains(spectator)) {
     return distribution.at(spectator);
-  } else {
-    return std::nullopt;
   }
+  return std::nullopt;
 }
 
 [[nodiscard]] std::optional<std::string> Log::Retrieve(std::optional<std::size_t> index) const {
   if (index.has_value()) {
     return Retrieve(index.value());
-  } else {
-    return Retrieve(std::nullopt);
   }
+  return Retrieve(std::nullopt);
 }
 
 } // namespace ngl::tbc

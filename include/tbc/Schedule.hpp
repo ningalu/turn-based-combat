@@ -13,13 +13,13 @@ struct Schedule {
   std::vector<std::vector<TActionable>> order;
   Schedule() = default;
 
-  Schedule(std::vector<TCommand> commands) {
+  explicit Schedule(const std::vector<TCommand> &commands) {
     for (const auto &command : commands) {
       order.push_back(std::vector<TActionable>{TActionable{command}});
     }
   }
 
-  Schedule(std::vector<std::size_t> players) {
+  explicit Schedule(const std::vector<std::size_t> &players) {
     for (const auto &player : players) {
       order.push_back(std::vector<TActionable>{TActionable{player}});
     }

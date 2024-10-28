@@ -22,6 +22,21 @@
 
 namespace ngl::tbc {
 
+namespace detail {
+template <typename TCommand, SimultaneousActionStrategy TSimultaneousActionStrategy>
+struct ActionTranslatorHelper {};
+
+template <typename TCommand>
+struct ActionTranslatorHelper<TCommand, SimultaneousActionStrategy::DISABLED> {
+  using ActionFrom = TCommand;
+};
+
+template <typename TCommand>
+struct ActionTranslatorHelper<TCommand, SimultaneousActionStrategy::ENABLED> {
+  using ActionFrom = std::vector<TCommand>;
+};
+} // namespace detail
+
 template <typename TState, typename TCommand, typename TCommandResult, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
 class BattleScheduler {
   using TCommandPayload = typename TCommand::Payload;
@@ -30,20 +45,7 @@ class BattleScheduler {
   using TEffect         = Effect<TBattle, TCommand, TEvent>;
   using TAction         = Action<TBattle, TCommand, TEvent>;
 
-  template <SimultaneousActionStrategy TSimultaneousActionStrategy>
-  struct ActionTranslatorHelper {};
-
-  template <>
-  struct ActionTranslatorHelper<SimultaneousActionStrategy::DISABLED> {
-    using ActionFrom = TCommand;
-  };
-
-  template <>
-  struct ActionTranslatorHelper<SimultaneousActionStrategy::ENABLED> {
-    using ActionFrom = std::vector<TCommand>;
-  };
-
-  using TActionTranslator = std::function<TAction(const typename ActionTranslatorHelper<TSimultaneousActionStrategy>::ActionFrom &, const TBattle &)>;
+  using TActionTranslator = std::function<TAction(const typename detail::ActionTranslatorHelper<TCommand, TSimultaneousActionStrategy>::ActionFrom &, const TBattle &)>;
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
   using TScheduleGenerator = std::function<TSchedule(TBattle &, const std::vector<TCommand> &, std::size_t)>;
@@ -183,7 +185,7 @@ public:
     }
   }
 
-  void ResolveAction(const TAction &action, TBattle &battle, std::size_t max_depth = 100) {
+  void ResolveAction(const TAction &action, TBattle &battle, std::size_t max_depth = 100) { // NOLINT relates to #24
     std::stack<TAction> to_resolve;
     to_resolve.push(action);
 

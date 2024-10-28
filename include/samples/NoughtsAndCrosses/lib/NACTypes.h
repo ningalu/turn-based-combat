@@ -30,7 +30,7 @@ using EffectResult   = NACTypes::TEffectResult;
 
 [[nodiscard]] std::pair<std::optional<std::vector<CommandPayload>>, CommandResult> ValidateCommands(std::size_t player, const std::vector<CommandPayload> &commands, const Game &battle);
 
-[[nodiscard]] Schedule GenerateSchedule(Game &battle, const std::vector<Command> &buffered_commands, std::size_t turn);
+[[nodiscard]] Schedule GenerateSchedule(const Game &battle, const std::vector<Command> &buffered_commands, std::size_t turn);
 
 [[nodiscard]] Action TranslateAction(const Command &command, const Game &battle);
 

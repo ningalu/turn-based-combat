@@ -14,8 +14,8 @@ namespace ngl::tbc::sample::nac {
   }
 
   NACCommand out;
-  for (auto const [addr, index] : std::vector<std::pair<std::size_t *, std::size_t>>{{&out.y, 0U}, {&out.x, 1U}}) {
-    int val;
+  for (auto const &[addr, index] : std::vector<std::pair<std::size_t *, std::size_t>>{{&out.y, 0U}, {&out.x, 1U}}) {
+    int val; // NOLINT this is kinda silly to pick up in a linter
     auto [ptr, ec] = std::from_chars(parts.at(index).data(), parts.at(index).data() + parts.at(index).size(), val);
     if (ec != std::errc()) {
       return std::nullopt;
@@ -71,12 +71,12 @@ namespace ngl::tbc::sample::nac {
   return std::pair{std::optional<std::vector<CommandPayload>>{std::vector{commands.at(0)}}, CommandResult{true}};
 }
 
-[[nodiscard]] Schedule GenerateSchedule([[maybe_unused]] Game &battle, [[maybe_unused]] const std::vector<Command> &buffered_commands, [[maybe_unused]] std::size_t turn) {
-  return std::vector<std::size_t>{0, 1};
+[[nodiscard]] Schedule GenerateSchedule([[maybe_unused]] const Game &battle, [[maybe_unused]] const std::vector<Command> &buffered_commands, [[maybe_unused]] std::size_t turn) {
+  return Schedule{std::vector<std::size_t>{0, 1}};
 }
 
 [[nodiscard]] Action TranslateAction(const Command &command, [[maybe_unused]] const Game &battle_arg) {
-  // TODO: refactor effects so you dont haev to rig this shit up
+  // TODO: refactor effects so you dont haev to rig this shit up by hand
   int run = 0;
   return Action{[command, run](Game &battle) mutable -> std::optional<EffectResult> {
     if (run == 0) {
@@ -89,9 +89,8 @@ namespace ngl::tbc::sample::nac {
       battle.state.board[x][y] = (command.player == 0) ? NACPlayer::NOUGHT : NACPlayer::CROSS;
       battle.PostLog(battle.state.str());
       return EffectResult{};
-    } else {
-      return std::nullopt;
     }
+    return std::nullopt;
   }};
 }
 
@@ -113,9 +112,8 @@ namespace ngl::tbc::sample::nac {
             out.winners = winners;
           }
           return out;
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       }
     }
   };
