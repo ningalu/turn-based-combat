@@ -7,63 +7,59 @@
 #include "samples/NoughtsAndCrosses/lib/NACTypes.h"
 
 TEST_CASE("Winner detection check is accurate", "[NACTypes]") {
-  using namespace ngl::tbc::sample::nac;
-  std::optional<NACPlayer> empty[3][3] = {std::nullopt};
+  using namespace ngl::tbc::sample::nac; // NOLINT
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3> empty;
 
-  std::optional<NACPlayer> horizontal_nought[3][3] = {
-    {NACPlayer::NOUGHT, NACPlayer::NOUGHT, NACPlayer::NOUGHT},
-    {std::nullopt, std::nullopt, std::nullopt},
-    {std::nullopt, std::nullopt, std::nullopt}
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3> horizontal_nought{
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::NOUGHT, NACPlayer::NOUGHT, NACPlayer::NOUGHT}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, std::nullopt, std::nullopt},                // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, std::nullopt, std::nullopt}                 // NOLINT
   };
-  std::optional<NACPlayer> vertical_nought[3][3] = {
-    {NACPlayer::NOUGHT, std::nullopt, std::nullopt},
-    {NACPlayer::NOUGHT, std::nullopt, std::nullopt},
-    {NACPlayer::NOUGHT, std::nullopt, std::nullopt}
-  };
-
-  std::optional<NACPlayer> diagonal_nought_1[3][3] = {
-    {NACPlayer::NOUGHT, std::nullopt, std::nullopt},
-    {std::nullopt, NACPlayer::NOUGHT, std::nullopt},
-    {std::nullopt, std::nullopt, NACPlayer::NOUGHT}
-  };
-  std::optional<NACPlayer> diagonal_nought_2[3][3] = {
-    {std::nullopt, std::nullopt, NACPlayer::NOUGHT},
-    {std::nullopt, NACPlayer::NOUGHT, std::nullopt},
-    {NACPlayer::NOUGHT, std::nullopt, std::nullopt}
-  };
-  std::optional<NACPlayer> diagonal_cross_1[3][3] = {
-    {NACPlayer::CROSS, std::nullopt, std::nullopt},
-    {std::nullopt, NACPlayer::CROSS, std::nullopt},
-    {std::nullopt, std::nullopt, NACPlayer::CROSS}
-  };
-  std::optional<NACPlayer> diagonal_cross_2[3][3] = {
-    {std::nullopt, std::nullopt, NACPlayer::CROSS},
-    {std::nullopt, NACPlayer::CROSS, std::nullopt},
-    {NACPlayer::CROSS, std::nullopt, std::nullopt}
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3> vertical_nought{
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::NOUGHT, std::nullopt, std::nullopt}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::NOUGHT, std::nullopt, std::nullopt}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::NOUGHT, std::nullopt, std::nullopt}  // NOLINT
   };
 
-  std::optional<NACPlayer> draw[3][3] = {
-    {NACPlayer::NOUGHT, NACPlayer::NOUGHT, NACPlayer::CROSS},
-    {NACPlayer::CROSS, NACPlayer::CROSS, NACPlayer::NOUGHT},
-    {NACPlayer::NOUGHT, NACPlayer::CROSS, NACPlayer::NOUGHT}
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3> diagonal_nought_1{
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::NOUGHT, std::nullopt, std::nullopt}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, NACPlayer::NOUGHT, std::nullopt}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, std::nullopt, NACPlayer::NOUGHT}  // NOLINT
+  };
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3> diagonal_nought_2{
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, std::nullopt, NACPlayer::NOUGHT}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, NACPlayer::NOUGHT, std::nullopt}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::NOUGHT, std::nullopt, std::nullopt}  // NOLINT
+  };
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3> diagonal_cross_1{
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::CROSS, std::nullopt, std::nullopt}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, NACPlayer::CROSS, std::nullopt}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, std::nullopt, NACPlayer::CROSS}  // NOLINT
+  };
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3> diagonal_cross_2{
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, std::nullopt, NACPlayer::CROSS}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{std::nullopt, NACPlayer::CROSS, std::nullopt}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::CROSS, std::nullopt, std::nullopt}  // NOLINT
   };
 
-  for (const auto [board, winner] : std::vector<std::pair<decltype(&empty), std::optional<std::vector<NACPlayer>>>>{
-         {&empty, std::nullopt},
-         {&horizontal_nought, std::vector<NACPlayer>{NACPlayer::NOUGHT}},
-         {&vertical_nought, std::vector<NACPlayer>{NACPlayer::NOUGHT}},
-         {&diagonal_nought_1, std::vector<NACPlayer>{NACPlayer::NOUGHT}},
-         {&diagonal_nought_2, std::vector<NACPlayer>{NACPlayer::NOUGHT}},
-         {&diagonal_cross_1, std::vector<NACPlayer>{NACPlayer::CROSS}},
-         {&diagonal_cross_2, std::vector<NACPlayer>{NACPlayer::CROSS}},
-         {&draw, std::vector<NACPlayer>{}}
+  ngl::tbc::GridLayout<std::optional<NACPlayer>, 3> draw{
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::NOUGHT, NACPlayer::NOUGHT, NACPlayer::CROSS}, // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::CROSS, NACPlayer::CROSS, NACPlayer::NOUGHT},  // NOLINT
+    std::array<std::optional<NACPlayer>, 3>{NACPlayer::NOUGHT, NACPlayer::CROSS, NACPlayer::NOUGHT}  // NOLINT
+  };
+
+  for (const auto &[board, winner] : std::vector<std::pair<ngl::tbc::GridLayout<std::optional<NACPlayer>, 3>, std::optional<std::vector<NACPlayer>>>>{
+         {empty, std::nullopt},
+         {horizontal_nought, std::vector<NACPlayer>{NACPlayer::NOUGHT}},
+         {vertical_nought, std::vector<NACPlayer>{NACPlayer::NOUGHT}},
+         {diagonal_nought_1, std::vector<NACPlayer>{NACPlayer::NOUGHT}},
+         {diagonal_nought_2, std::vector<NACPlayer>{NACPlayer::NOUGHT}},
+         {diagonal_cross_1, std::vector<NACPlayer>{NACPlayer::CROSS}},
+         {diagonal_cross_2, std::vector<NACPlayer>{NACPlayer::CROSS}},
+         {draw, std::vector<NACPlayer>{}}
        }) {
     NACState state;
-    for (std::size_t i = 0; i < 3; i++) {
-      for (std::size_t j = 0; j < 3; j++) {
-        state.board[i][j] = (*board)[i][j]; // this is stupid
-      }
-    }
+    state.board = board;
     CHECK(GameEnded(state) == winner);
   }
 

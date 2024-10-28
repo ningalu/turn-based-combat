@@ -31,7 +31,7 @@ std::vector<ngl::tbc::sample::rps::RPS::TCommandPayload> get_payloads(std::vecto
 }
 
 SCENARIO("Rock Paper Scissors Integration Test", "[RPSIntegration]") {
-  using namespace ngl::tbc::sample::rps;
+  using namespace ngl::tbc::sample::rps; // NOLINT
 
   Scheduler s;
   s.SetScheduleGenerator(GenerateSchedule);

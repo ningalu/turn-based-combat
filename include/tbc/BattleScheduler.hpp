@@ -174,8 +174,8 @@ public:
           // Actionable is std::vector<command | player | event>
           // TODO: how to deal with this? new callbac kfor this scenario?
           std::vector<TCommand> actionable_commands;
-          for (const auto action : actionable) {
-            actionable_commands.push_back(std::get<TCommand>(action));
+          for (const auto actionable_value : actionable) {
+            actionable_commands.push_back(std::get<TCommand>(actionable_value));
           }
           return TranslateAction(actionable_commands, battle);
         }
@@ -198,7 +198,7 @@ public:
     to_resolve.push(action);
 
     std::size_t depth = 0;
-    while ((to_resolve.size() > 0) && (depth < max_depth)) {
+    while ((!to_resolve.empty()) && (depth < max_depth)) {
       depth++;
 
       const auto res = to_resolve.top().ApplyNext(battle);
@@ -209,7 +209,7 @@ public:
         continue;
       }
 
-      const auto [status, winners, actionables] = res.value();
+      const auto &[status, winners, actionables] = res.value();
 
       // Resolve the current action even if the battle has ended
       // TODO: make this configurable
