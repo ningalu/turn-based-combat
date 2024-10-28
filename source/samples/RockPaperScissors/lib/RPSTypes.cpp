@@ -38,7 +38,6 @@ using ValidationRes = std::pair<std::optional<std::vector<CmdPayload>>, CmdResul
 }
 
 [[nodiscard]] Schedule GenerateSchedule(Game &battle, [[maybe_unused]] const std::vector<Cmd> &buffered_commands, [[maybe_unused]] std::size_t turn) {
-
   const auto commands = battle.RequestCommands(std::vector<std::size_t>{0, 1});
   return Schedule{commands};
 }
@@ -90,7 +89,7 @@ using ValidationRes = std::pair<std::optional<std::vector<CmdPayload>>, CmdResul
       return EffectResult{};
     }
   };
-  return Act{std::vector<Effect>{}};
+  return Act{e};
 }
 
 } // namespace ngl::tbc::sample::rps
