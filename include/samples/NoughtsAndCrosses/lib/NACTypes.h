@@ -2,6 +2,10 @@
 
 #include "tbc/BattleTypes.hpp"
 #include "tbc/util/layout/GridLayout.hpp"
+
+// Noughts and Crosses is an example of a game with perfectly sequential Turn order using
+// only immediate commands
+
 namespace ngl::tbc::sample::nac {
 
 using NACCommand = ngl::tbc::GridLayoutIndex;

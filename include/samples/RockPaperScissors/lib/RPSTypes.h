@@ -3,6 +3,10 @@
 
 #include "tbc/BattleTypes.hpp"
 
+// Rock Paper Scissors is an example of a game that models Actions to happen simultaneously.
+// Because of its simplicity there isn't really a distinction between Command requests happening
+// in a planning phase vs Command requests being immediate and simultaneous
+
 namespace ngl::tbc::sample::rps {
 // TODO: worth allowing void/no battle state template parameter?
 // only extremely trivial games have no state, to be fair
