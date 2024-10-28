@@ -24,7 +24,7 @@ struct ActionableHelper<TCommand, TEvent, SimultaneousActionStrategy::ENABLED> {
   using ActionableImpl = std::vector<std::variant<TCommand, std::size_t, TEvent>>;
 };
 
-template <typename TCommand, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy = SimultaneousActionStrategy::DISABLED>
+template <typename TCommand, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
   requires((TSimultaneousActionStrategy == SimultaneousActionStrategy::ENABLED) || (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED))
 using Actionable = typename ActionableHelper<TCommand, TEvent, TSimultaneousActionStrategy>::ActionableImpl;
 } // namespace ngl::tbc

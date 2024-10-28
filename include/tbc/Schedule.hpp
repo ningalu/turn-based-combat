@@ -8,20 +8,36 @@
 namespace ngl::tbc {
 template <typename TCommand, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
 struct Schedule {
-  using TActionable = Actionable<TCommand, TEvent>;
+  using TActionable = Actionable<TCommand, TEvent, TSimultaneousActionStrategy>;
 
-  std::vector<std::vector<TActionable>> order;
+  std::vector<TActionable> order;
   Schedule() = default;
 
   explicit Schedule(const std::vector<TCommand> &commands) {
-    for (const auto &command : commands) {
-      order.push_back(std::vector<TActionable>{TActionable{command}});
+    if constexpr (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED) {
+      for (const auto &command : commands) {
+        order.push_back(TActionable{command});
+      }
+    } else {
+      TActionable action;
+      for (const auto command : commands) {
+        action.push_back({command});
+      }
+      order.push_back(action);
     }
   }
 
   explicit Schedule(const std::vector<std::size_t> &players) {
-    for (const auto &player : players) {
-      order.push_back(std::vector<TActionable>{TActionable{player}});
+    if constexpr (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED) {
+      for (const auto &player : players) {
+        order.push_back(TActionable{player});
+      }
+    } else {
+      TActionable action;
+      for (const auto player : players) {
+        action.push_back({player});
+      }
+      order.push_back(action);
     }
   }
 
