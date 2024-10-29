@@ -18,8 +18,9 @@ class RPGLayout : public std::vector<std::vector<TData>> {
 
 public:
   // TODO: is there any data Slot needs to track other than player defined stuff?
-  using Slot = TData;
-  using Side = std::vector<Slot>;
+  using Slot  = TData;
+  using Side  = std::vector<Slot>;
+  using Index = RPGLayoutIndex;
 
   [[nodiscard]] const TData &at(RPGLayoutIndex i) const { return Self::at(i.side).at(i.slot); }
   [[nodiscard]] TData &at(RPGLayoutIndex i) { return Self::at(i.side).at(i.slot); }

@@ -4,7 +4,7 @@ include(cmake/prelude.cmake)
 
 project(
     ngl-tbc-2
-    VERSION 0.3.0
+    VERSION 0.4.0
     DESCRIPTION "Short description"
     HOMEPAGE_URL "https://example.com/"
     LANGUAGES CXX

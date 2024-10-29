@@ -16,6 +16,8 @@ class GridLayout : public std::array<std::array<TData, W>, H> {
   using Self = std::array<std::array<TData, W>, H>;
 
 public:
+  using Index = GridLayoutIndex;
+
   [[nodiscard]] const TData &at(GridLayoutIndex i) const { return Self::at(i.y).at(i.x); }
   [[nodiscard]] TData &at(GridLayoutIndex i) { return Self::at(i.y).at(i.x); }
 
