@@ -161,7 +161,7 @@ public:
       queued_commands.push_back({});
     }
     std::cout << "Queued " << turns_ahead << " turns ahead\n";
-    queued_commands.at(turns_ahead).BufferCommand(c);
+    queued_commands.at(turns_ahead).push_back(c);
   }
 
   void PostLog(const std::string &message) {
