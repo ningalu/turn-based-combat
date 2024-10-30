@@ -10,6 +10,7 @@
 #include <stack>
 #include <vector>
 
+#include "util/oneof.hpp"
 #include "util/tmp.hpp"
 
 #include "tbc/Action.hpp"
@@ -44,6 +45,7 @@ class BattleScheduler {
   using TSchedule       = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TEffect         = Effect<TBattle, TCommand, TEvent>;
   using TAction         = Action<TBattle, TCommand, TEvent>;
+  using TActionable     = Actionable<TCommand, TEvent, TSimultaneousActionStrategy>;
 
   using TCommandsToActions = typename detail::ActionTranslatorHelper<TCommand, TSimultaneousActionStrategy>::ActionFrom;
   // TODO: genericise the singular/multiple actionables/commands idea
@@ -51,6 +53,27 @@ class BattleScheduler {
   using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
 
   using TScheduleGenerator = std::function<TSchedule(TBattle &, const std::vector<TCommand> &, std::size_t)>;
+
+  [[nodiscard]] std::vector<TAction> GenerateSequentialActions(const TActionable &actionable, TBattle &battle) {
+    return match(
+      actionable,
+      [&battle, this](const TCommand &command) {
+        return std::vector{TranslateAction(command, battle)};
+      },
+      [&battle, this](std::size_t player) {
+        const auto commands = battle.RequestCommands(std::vector{player});
+        return TranslateActions(commands, battle);
+      },
+      [&battle, this](const TEvent &event) {
+        const auto actions_opt = PostEvent(event, battle);
+        if (actions_opt.has_value()) {
+          return actions_opt.value();
+        } else {
+          return std::vector<TAction>{};
+        }
+      }
+    );
+  }
 
 public:
   template <typename TSpecificEvent>
@@ -151,37 +174,37 @@ public:
       const auto actionable = battle.current_turn_schedule.order.at(0);
       ResolveEvent<DefaultEvents::PlannedActionStart>({}, battle);
       // TODO: figure out configurable simultaneous/sequential actionable resolution
-      const auto action = [&, this]() {
+      // TODO: everything but Commands can return multiple actions. figure out if anything special
+      // should happen with these or if they should just be resolved in order
+      const auto actions = [&, this]() {
         if constexpr (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED) {
-          return std::visit(
-            [&](auto &&payload) {
-              using T = std::decay_t<decltype(payload)>;
-              if constexpr (std::is_same_v<T, TCommand>) {
-                return TranslateAction(payload, battle);
-              } else if constexpr (std::is_same_v<T, std::size_t>) {
-                const auto commands = battle.RequestCommands(std::vector{payload});
-                assert(commands.size() == 1);
-                return TranslateAction(commands.at(0), battle);
-              } else {
-                // TODO: query immediate action actionables
-                assert(false);
-                return TAction{std::vector<TEffect>{}};
-              }
-            },
-            actionable
-          );
+          return GenerateSequentialActions(actionable, battle);
         } else {
           // Actionable is std::vector<command | player | event>
           // TODO: how to deal with this? new callbac kfor this scenario?
           std::vector<TCommand> actionable_commands;
-          for (const auto actionable_value : actionable) {
-            actionable_commands.push_back(std::get<TCommand>(actionable_value));
+          for (const auto actionable_item : actionable) {
+            match(
+              actionable_item,
+              [&actionable_commands](const TCommand &command) {
+                actionable_commands.push_back(command);
+              },
+              [&actionable_commands, &battle, this](std::size_t player) {
+                const auto player_commands = battle.RequestCommands(std::vector{player});
+                actionable_commands.insert(actionable_commands.end(), player_commands.begin(), player_commands.end());
+              },
+              []([[maybe_unused]] const TEvent &event) {
+                throw std::logic_error{"TODO: who knows what this should mean"};
+              }
+            );
           }
-          return TranslateAction(actionable_commands, battle);
+          return std::vector{TranslateAction(actionable_commands, battle)};
         }
       }();
 
-      ResolveAction(action, battle);
+      for (const auto &action : actions) {
+        ResolveAction(action, battle);
+      }
       battle.current_turn_schedule.Next();
 
       ResolveEvent<DefaultEvents::PlannedActionEnd>({}, battle);
@@ -228,19 +251,7 @@ public:
         for (auto it = actionables.rbegin(); it != actionables.rend(); it++) {
           if constexpr (TSimultaneousActionStrategy == SimultaneousActionStrategy::DISABLED) {
 
-            const auto dynamic_actions = std::visit([&, this](auto &&payload) -> std::vector<TAction> {
-              using T = std::decay_t<decltype(payload)>;
-              if constexpr (std::is_same_v<T, TCommand>) {
-                return std::vector<TAction>{TranslateAction(payload, battle)};
-              } else if constexpr (std::is_same_v<T, TEvent>) {
-                const auto event_actions = PostEvent(payload, battle);
-                return (event_actions.has_value() ? event_actions.value() : std::vector<TAction>{});
-              } else {
-                assert(false);
-                return std::vector<TAction>{};
-              }
-            },
-                                                    *it);
+            const auto dynamic_actions = GenerateSequentialActions(*it, battle);
             for (auto jt = dynamic_actions.rbegin(); jt != dynamic_actions.rend(); jt++) {
               to_resolve.push(*jt);
             }

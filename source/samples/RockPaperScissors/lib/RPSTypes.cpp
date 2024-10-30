@@ -37,9 +37,8 @@ using ValidationRes = std::pair<std::optional<std::vector<CmdPayload>>, CmdResul
   return ValidationRes{commands, CmdResult{true}};
 }
 
-[[nodiscard]] Schedule GenerateSchedule(Game &battle, [[maybe_unused]] const std::vector<Cmd> &buffered_commands, [[maybe_unused]] std::size_t turn) {
-  const auto commands = battle.RequestCommands(std::vector<std::size_t>{0, 1});
-  return Schedule{commands};
+[[nodiscard]] Schedule GenerateSchedule([[maybe_unused]] Game &battle, [[maybe_unused]] const std::vector<Cmd> &buffered_commands, [[maybe_unused]] std::size_t turn) {
+  return Schedule{std::vector<std::size_t>{0, 1}};
 }
 
 [[nodiscard]] Act TranslateAction([[maybe_unused]] const std::vector<Cmd> &command, [[maybe_unused]] const Game &battle_arg) {

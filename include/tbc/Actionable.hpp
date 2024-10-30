@@ -11,17 +11,19 @@ enum class SimultaneousActionStrategy {
 };
 
 template <typename TCommand, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
-
-struct ActionableHelper {};
+struct ActionableHelper {
+};
 
 template <typename TCommand, typename TEvent>
 struct ActionableHelper<TCommand, TEvent, SimultaneousActionStrategy::DISABLED> {
-  using ActionableImpl = std::variant<TCommand, std::size_t, TEvent>;
+  using ActionableItem = std::variant<TCommand, std::size_t, TEvent>;
+  using ActionableImpl = ActionableItem;
 };
 
 template <typename TCommand, typename TEvent>
 struct ActionableHelper<TCommand, TEvent, SimultaneousActionStrategy::ENABLED> {
-  using ActionableImpl = std::vector<std::variant<TCommand, std::size_t, TEvent>>;
+  using ActionableItem = std::variant<TCommand, std::size_t, TEvent>;
+  using ActionableImpl = std::vector<ActionableItem>;
 };
 
 template <typename TCommand, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
