@@ -16,7 +16,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
 
   NACTypes::TPlayerComms player{
     "Player",
-    [&]([[maybe_unused]] auto &&whatever) -> std::vector<NACTypes::TCommandPayload> {
+    [&]([[maybe_unused]] auto &&...whatever) -> std::vector<NACTypes::TCommandPayload> {
       std::string in;
       std::vector<std::string_view> parts;
       std::optional<NACCommand> command;
@@ -34,7 +34,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
 
   NACTypes::TPlayerComms cpu{
     "CPU",
-    [&]([[maybe_unused]] auto &&whatever) -> std::vector<NACTypes::TCommandPayload> {
+    [&]([[maybe_unused]] auto &&...whatever) -> std::vector<NACTypes::TCommandPayload> {
       NACCommand command;
       command.x = static_cast<uint8_t>(rand() % 3);
       command.y = static_cast<uint8_t>(rand() % 3);

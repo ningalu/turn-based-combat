@@ -29,7 +29,8 @@ template <
   SimultaneousActionStrategy TSimultaneousActionStrategy>
 class Battle {
   using TBattle                = Battle<TState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
-  using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
+  using TComms                 = Comms<TBattle, TCommand, TCommandResult>;
+  using TPlayerComms           = PlayerComms<TBattle, TCommand, TCommandResult>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
   using TPlayerCommandRequest  = PlayerCommandRequest<TCommand>;
   using TActionable            = Actionable<TCommand, TEvent, TSimultaneousActionStrategy>;
@@ -125,7 +126,7 @@ public:
         TCommandResult result;
 
         for (std::size_t i = 0; i < attempts; i++) {
-          const auto incoming_payloads = comms_.players.at(player).RequestCommands(valid_commands).get();
+          const auto incoming_payloads = comms_.players.at(player).RequestCommands(valid_commands, *this).get();
           auto validation_result       = validator ? validator(player, incoming_payloads, *this) : ValidateCommands(player, incoming_payloads);
           payloads                     = validation_result.first;
           result                       = validation_result.second;
@@ -185,7 +186,7 @@ public:
   }
 
 protected:
-  Comms<TCommand, TCommandResult> comms_;
+  TComms comms_;
 
   // TODO: refactor
   std::optional<std::vector<std::size_t>> winner_indices_;
