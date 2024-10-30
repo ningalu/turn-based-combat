@@ -7,9 +7,9 @@
 #include "tbc/PlayerComms.hpp"
 
 namespace ngl::tbc {
-template <typename TCommand, typename TCommandResult>
+template <typename TBattle, typename TCommand, typename TCommandResult>
 struct Comms {
-  using TPlayerComms = PlayerComms<TCommand, TCommandResult>;
+  using TPlayerComms = PlayerComms<TBattle, TCommand, TCommandResult>;
   // std::queue? any reason to look at past logs?
   std::vector<Log> log_buffer_;
   Log::Handler master_log_output_;

@@ -19,7 +19,6 @@ struct BattleTypes {
 
   using TCommandPayload        = typename TCommand::Payload;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
-  using TPlayerComms           = PlayerComms<TCommand, TCommandResult>;
   using TCommandRequest        = PlayerCommandRequest<TCommand>;
 
   using TEventPayload = typename TEvent::Payload;
@@ -27,6 +26,8 @@ struct BattleTypes {
   using TBattle          = Battle<TBattleState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
   using TSchedule        = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TBattleScheduler = BattleScheduler<TBattleState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
+  using TComms           = Comms<TBattle, TCommand, TCommandResult>;
+  using TPlayerComms     = PlayerComms<TBattle, TCommand, TCommandResult>;
 
   using TEventHandler = EventHandler<TBattle, TCommand, TEvent>;
 

@@ -11,7 +11,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
   srand(static_cast<unsigned int>(time(NULL)));
   Player player{
     "Player",
-    [&]([[maybe_unused]] auto &&whatever) -> std::vector<CmdPayload> {
+    [&]([[maybe_unused]] auto &&...whatever) -> std::vector<CmdPayload> {
       std::string in;
       std::optional<RPSCommand> command;
       while (!command.has_value()) {
@@ -25,7 +25,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
 
   Player cpu{
     "CPU",
-    []([[maybe_unused]] auto &&whatever) -> std::vector<CmdPayload> {
+    []([[maybe_unused]] auto &&...whatever) -> std::vector<CmdPayload> {
       std::vector<CmdPayload> out;
       switch (rand() % 3) {
       case 0:

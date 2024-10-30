@@ -8,12 +8,12 @@
 #include "tbc/Log.h"
 
 namespace ngl::tbc {
-template <typename TCommand, typename TCommandResult>
+template <typename TBattle, typename TCommand, typename TCommandResult>
 class PlayerComms {
 public:
   using TPayload                = typename TCommand::Payload;
   using TPayloadTypeSet         = typename TCommand::PayloadTypeSet;
-  using TRequestCommandHandler  = std::function<std::vector<TPayload>(const TPayloadTypeSet &)>;
+  using TRequestCommandHandler  = std::function<std::vector<TPayload>(const TPayloadTypeSet &, const TBattle &)>;
   using TCommandResponseHandler = std::function<void(const TCommandResult &)>;
 
   PlayerComms(std::string name, TRequestCommandHandler request_handler)
@@ -21,7 +21,9 @@ public:
         request_handler_{std::move(request_handler)} {}
 
   void SetCommandHandler(const TRequestCommandHandler &handler) { request_handler_ = handler; }
-  [[nodiscard]] std::future<std::vector<TPayload>> RequestCommands(const TPayloadTypeSet &types) { return std::async(std::launch::async, request_handler_, types); }
+  [[nodiscard]] std::future<std::vector<TPayload>> RequestCommands(const TPayloadTypeSet &types, const TBattle &battle) {
+    return std::async(std::launch::async, request_handler_, types, battle);
+  }
 
   void SetResponseHandler(const TCommandResponseHandler &handler) { response_handler_ = handler; }
   void RespondToCommands(const TCommandResult &res) const {

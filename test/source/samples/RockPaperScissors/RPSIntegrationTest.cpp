@@ -13,7 +13,7 @@
 ngl::tbc::sample::rps::RPS::TPlayerComms get_comms(std::vector<ngl::tbc::sample::rps::RPS::TCommandPayload> &payloads) {
   return {
     "CPU",
-    [&]([[maybe_unused]] auto &&whatever) mutable -> std::vector<ngl::tbc::sample::rps::RPS::TCommandPayload> {
+    [&]([[maybe_unused]] auto &&...whatever) mutable -> std::vector<ngl::tbc::sample::rps::RPS::TCommandPayload> {
       assert(!payloads.empty());
       const auto payload = payloads.at(0);
       payloads.erase(payloads.begin());

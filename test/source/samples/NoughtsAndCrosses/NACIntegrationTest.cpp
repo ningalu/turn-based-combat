@@ -11,7 +11,7 @@
 ngl::tbc::sample::nac::NACTypes::TPlayerComms get_comms(std::vector<ngl::tbc::sample::nac::NACTypes::TCommandPayload> &payloads) {
   return {
     "CPU",
-    [&]([[maybe_unused]] auto &&whatever) mutable -> std::vector<ngl::tbc::sample::nac::NACTypes::TCommandPayload> {
+    [&]([[maybe_unused]] auto &&...whatever) mutable -> std::vector<ngl::tbc::sample::nac::NACTypes::TCommandPayload> {
       assert(!payloads.empty());
       const auto payload = payloads.at(0);
       payloads.erase(payloads.begin());

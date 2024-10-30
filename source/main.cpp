@@ -125,9 +125,9 @@ MyAction GetActionWithIntEffect(std::size_t user, int state) {
   return MyAction{GetEffectWithIntEvent(user, state)};
 }
 
-std::function<std::vector<MyCommandPayload>(const MyCmdSet &)> GetComms(int n) {
+std::function<std::vector<MyCommandPayload>(const MyCmdSet &, const MyBattle &)> GetComms(int n) {
   assert(n < 3);
-  return [=]([[maybe_unused]] const MyCmdSet &unused) -> std::vector<MyCommandPayload> {
+  return [=]([[maybe_unused]] auto &&...whatever) -> std::vector<MyCommandPayload> {
     switch (n) {
     case 0:
       return std::vector<MyCommandPayload>({MyCommandPayload{RockCommand{}}});
@@ -219,7 +219,7 @@ auto main() -> int {
     std::cout << "\n\nTest user event\n";
     test_user_event();
 
-    auto input_comms = [&]([[maybe_unused]] const MyCmdSet &unused) {
+    auto input_comms = [&]([[maybe_unused]] auto &&...whatever) {
       std::set<std::string> valid{"R", "P", "S"};
       std::cout << "Play R | P | S\n";
       std::string in;
