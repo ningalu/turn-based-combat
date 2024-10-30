@@ -68,9 +68,8 @@ class BattleScheduler {
         const auto actions_opt = PostEvent(event, battle);
         if (actions_opt.has_value()) {
           return actions_opt.value();
-        } else {
-          return std::vector<TAction>{};
         }
+        return std::vector<TAction>{};
       }
     );
   }

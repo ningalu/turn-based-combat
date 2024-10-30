@@ -8,13 +8,14 @@
 
 namespace ngl {
 
-class non_comprehensive_match : public std::exception {
-  using std::exception::exception;
+class non_comprehensive_match : public std::runtime_error {
+public:
+  using std::runtime_error::runtime_error;
 };
 
 template <typename... TCallable>
-struct visit_impl : TCallable... {
-  using TCallable::operator()...;
+struct visit_impl : TCallable... { // NOLINT
+  using TCallable::operator()...;  // TODO: why does this get picked up as a syntax error and then still compile
 };
 
 template <class... Ts>
@@ -30,7 +31,7 @@ auto match(TVariant &v, const TCallable &...f) {
   return std::visit(
     visit_impl{
       f...,
-      [](auto &&) {
+      []([[maybe_unused]] auto &&unmatched_value) {
         throw non_comprehensive_match{"unmatched"};
       }
     },
@@ -53,7 +54,7 @@ public:
     return std::visit(
       visit_impl{
         f...,
-        [](auto &&) {
+        []([[maybe_unused]] auto &&unmatched_value) {
           throw non_comprehensive_match{"unmatched"};
         }
       },
