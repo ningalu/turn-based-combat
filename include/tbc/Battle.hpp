@@ -157,7 +157,6 @@ public:
   }
 
   void BufferCommand(const TCommand &c, std::size_t turns_ahead) {
-    assert(turns_ahead != 0);
     while (queued_commands.size() < (turns_ahead + 1)) {
       queued_commands.push_back({});
     }
@@ -171,6 +170,9 @@ public:
 
   void InitTurn(const TSchedule &schedule) {
     current_turn_schedule = schedule;
+    if (!queued_commands.empty()) {
+      queued_commands.erase(queued_commands.begin());
+    }
   }
 
   void EndBattle(const std::vector<std::size_t> &winners) {
