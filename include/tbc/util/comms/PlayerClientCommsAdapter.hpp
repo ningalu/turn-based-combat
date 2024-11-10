@@ -1,6 +1,10 @@
 #ifndef TBC_UTIL_COMMS_PLAYERCLIENTCOMMSADAPTER_HPP
 #define TBC_UTIL_COMMS_PLAYERCLIENTCOMMSADAPTER_HPP
 
+#include <vector>
+
+#include "tbc/util/comms/PlayerClientProxy.hpp"
+
 namespace ngl::tbc::comms {
 template <typename TBattle>
 class PlayerClientCommsAdapter {
@@ -15,9 +19,9 @@ public:
   [[nodiscard]] std::vector<TPlayerComms> MakePlayerComms() {
     std::vector<TPlayerComms> out;
     for (auto &proxy : proxies) {
-      auto player = PlayerComms{
+      auto player = TPlayerComms{
         "Proxy Player", // TODO: fix this naming sometime
-        [&proxy](const TCommandPayloadSet &valid, const Battle &battle) {
+        [&proxy](const TCommandPayloadSet &valid, const TBattle &battle) {
           return proxy.CommsRequestCallback(valid, battle);
         }
       };
@@ -35,3 +39,5 @@ public:
   std::vector<PlayerClientProxy<TBattle>> proxies;
 };
 } // namespace ngl::tbc::comms
+
+#endif

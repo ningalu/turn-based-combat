@@ -35,7 +35,7 @@ public:
     return out;
   }
 
-  [[nodiscard]] std::vector<TCommandPayload> CommsRequestCallback(const TCommandPayloadSet &valid_payloads) {
+  [[nodiscard]] std::vector<TCommandPayload> CommsRequestCallback(const TCommandPayloadSet &valid_payloads, const TBattle &battle) {
     std::unique_lock<std::mutex> lock(request_mutex_);
     valid_payloads_ = valid_payloads;
     request_ready_.wait(lock, [this]() {
@@ -48,7 +48,7 @@ public:
     return out;
   }
 
-  void CommsResponseCallback(const CommandResult &result) {
+  void CommsResponseCallback(const TCommandResult &result) {
     std::unique_lock<std::mutex> lock(response_mutex_);
     response_ = result;
     response_ready_.notify_all();
