@@ -28,6 +28,7 @@ template <
   typename TEvent,
   SimultaneousActionStrategy TSimultaneousActionStrategy>
 class Battle {
+public:
   using TBattle                = Battle<TState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
   using TComms                 = Comms<TBattle, TCommand, TCommandResult>;
   using TPlayerComms           = PlayerComms<TBattle, TCommand, TCommandResult>;
@@ -42,7 +43,11 @@ class Battle {
   using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
-public:
+  using State         = TState;
+  using Command       = TCommand;
+  using CommandResult = TCommandResult;
+  using Event         = TEvent;
+
   constexpr static auto SimultaneousActionStrategy = TSimultaneousActionStrategy;
 
   Battle(const TState &state_, std::vector<TPlayerComms> comms)
