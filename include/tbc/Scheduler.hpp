@@ -1,5 +1,5 @@
-#ifndef TBC_BATTLESCHEDULER_HPP
-#define TBC_BATTLESCHEDULER_HPP
+#ifndef TBC_SCHEDULER_HPP
+#define TBC_SCHEDULER_HPP
 
 #include <cassert>
 #include <functional>
@@ -39,7 +39,7 @@ struct ActionTranslatorHelper<TCommand, SimultaneousActionStrategy::ENABLED> {
 } // namespace detail
 
 template <typename TState, typename TCommand, typename TCommandResult, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
-class BattleScheduler {
+class Scheduler {
   using TCommandPayload = typename TCommand::Payload;
   using TBattle         = Battle<TState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
   using TSchedule       = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
@@ -48,11 +48,6 @@ class BattleScheduler {
   using TActionable     = Actionable<TCommand, TEvent, TSimultaneousActionStrategy>;
 
   using TCommandsToActions = typename detail::ActionTranslatorHelper<TCommand, TSimultaneousActionStrategy>::ActionFrom;
-  // TODO: genericise the singular/multiple actionables/commands idea
-  using TActionTranslator = std::function<TAction(const TCommandsToActions &, const TBattle &)>;
-  using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
-
-  using TScheduleGenerator = std::function<TSchedule(TBattle &, const std::vector<TCommand> &, std::size_t)>;
 
   [[nodiscard]] std::vector<TAction> GenerateSequentialActions(const TActionable &actionable, TBattle &battle) {
     return match(
@@ -75,6 +70,12 @@ class BattleScheduler {
   }
 
 public:
+  // TODO: genericise the singular/multiple actionables/commands idea
+  using TActionTranslator = std::function<TAction(const TCommandsToActions &, const TBattle &)>;
+  using TBattleEndChecker = std::function<std::optional<std::vector<std::size_t>>(const TBattle &)>;
+
+  using TScheduleGenerator = std::function<TSchedule(TBattle &, const std::vector<TCommand> &, std::size_t)>;
+
   template <typename TSpecificEvent>
   void SetHandler(std::function<std::vector<TAction>(TSpecificEvent, TBattle &)> handler) {
     event_handlers_.template RegisterHandler<TSpecificEvent>(handler);
@@ -83,7 +84,6 @@ public:
   template <typename TSpecificEvent>
   [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TSpecificEvent &e, TBattle &b) const {
     std::optional<std::vector<TAction>> out = std::nullopt;
-    // .template looks gross
     if (event_handlers_.template HasHandler<TSpecificEvent>()) {
       out = event_handlers_.template PostEvent<TSpecificEvent>(e, b);
     }
@@ -91,11 +91,13 @@ public:
   }
 
   [[nodiscard]] std::optional<std::vector<TAction>> PostEvent(const TEvent &event, TBattle &battle) const {
-    return std::visit([&](auto &&event_payload) {
-      using T = std::decay_t<decltype(event_payload)>;
-      return PostEvent<T>(event_payload, battle);
-    },
-                      event.payload);
+    return std::visit(
+      [&](auto &&event_payload) {
+        using T = std::decay_t<decltype(event_payload)>;
+        return PostEvent<T>(event_payload, battle);
+      },
+      event.payload
+    );
   }
 
   // should only really be used for statically known event timings, since dynamically posted events need to be scheduled

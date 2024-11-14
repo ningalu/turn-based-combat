@@ -3,11 +3,11 @@
 
 #include "tbc/Action.hpp"
 #include "tbc/Battle.hpp"
-#include "tbc/BattleScheduler.hpp"
 #include "tbc/Effect.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerComms.hpp"
 #include "tbc/Schedule.hpp"
+#include "tbc/Scheduler.hpp"
 
 namespace ngl::tbc {
 template <typename TBattleState_, typename TCommand_, typename TCommandResult_, typename TEvent_, SimultaneousActionStrategy TSimultaneousActionStrategy = SimultaneousActionStrategy::DISABLED>
@@ -23,11 +23,11 @@ struct BattleTypes {
 
   using TEventPayload = typename TEvent::Payload;
 
-  using TBattle          = Battle<TBattleState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
-  using TSchedule        = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
-  using TBattleScheduler = BattleScheduler<TBattleState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
-  using TComms           = Comms<TBattle, TCommand, TCommandResult>;
-  using TPlayerComms     = PlayerComms<TBattle, TCommand, TCommandResult>;
+  using TBattle      = Battle<TBattleState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
+  using TSchedule    = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
+  using TScheduler   = Scheduler<TBattleState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
+  using TComms       = Comms<TBattle, TCommand, TCommandResult>;
+  using TPlayerComms = PlayerComms<TBattle, TCommand, TCommandResult>;
 
   using TEventHandler = EventHandler<TBattle, TCommand, TEvent>;
 

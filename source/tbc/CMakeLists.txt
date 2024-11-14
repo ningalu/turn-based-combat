@@ -11,10 +11,8 @@ target_include_directories(
 
 target_compile_features(ngl-tbc_lib PUBLIC cxx_std_20)
 
-find_package(fmt REQUIRED)
 find_package(Threads REQUIRED)
 target_link_libraries(
     ngl-tbc_lib
-    PRIVATE fmt::fmt
     PRIVATE Threads::Threads
 )

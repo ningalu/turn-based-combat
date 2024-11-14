@@ -9,13 +9,13 @@
 #include "util/util.h"
 
 #include "tbc/Battle.hpp"
-#include "tbc/BattleScheduler.hpp"
 #include "tbc/Command.hpp"
 #include "tbc/CommandPayloadSet.hpp"
 #include "tbc/Effect.hpp"
 #include "tbc/Event.hpp"
 #include "tbc/EventHandler.hpp"
 #include "tbc/PlayerComms.hpp"
+#include "tbc/Scheduler.hpp"
 
 #include "tbc/BattleTypes.hpp"
 
@@ -38,7 +38,7 @@ using MyEvents = ngl::tbc::Event<int, double>;
 using MyBattleTypes = ngl::tbc::BattleTypes<MyBattleState, MyCommands, MyCommandResult, MyEvents>;
 
 using MyBattle       = MyBattleTypes::TBattle;
-using MyScheduler    = MyBattleTypes::TBattleScheduler;
+using MyScheduler    = MyBattleTypes::TScheduler;
 using MyEventHandler = MyBattleTypes::TEventHandler;
 
 using MyEffect = MyBattleTypes::TEffect;

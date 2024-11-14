@@ -20,14 +20,6 @@ public:
 protected:
   using ActionImpl = std::function<std::optional<Result>(TBattle &)>;
 
-public:
-  TransferFunction pre;
-  TransferFunction post;
-
-  explicit Action(const TEffect &effects) : TAction(std::vector<TEffect>{effects}) {}
-  explicit Action(const std::vector<TEffect> &effects) : TAction(EffectsImpl(effects)) {}
-  explicit Action(ActionImpl impl) : started_{false}, finished_{false}, cancelled_{false}, action_impl_{std::move(impl)} {}
-
   [[nodiscard]] static std::function<std::optional<Result>(TBattle &)> EffectsImpl(std::vector<TEffect> effects) {
     return [effects](TBattle &battle) mutable -> std::optional<Result> {
       if (!effects.empty()) {
@@ -39,6 +31,14 @@ public:
       return std::nullopt;
     };
   }
+
+public:
+  TransferFunction pre;
+  TransferFunction post;
+
+  explicit Action(const TEffect &effects) : TAction(std::vector<TEffect>{effects}) {}
+  explicit Action(const std::vector<TEffect> &effects) : TAction(EffectsImpl(effects)) {}
+  explicit Action(ActionImpl impl) : started_{false}, finished_{false}, cancelled_{false}, action_impl_{std::move(impl)} {}
 
   [[nodiscard]] std::optional<Result> ApplyNext(TBattle &battle) {
     assert(action_impl_);

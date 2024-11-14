@@ -13,12 +13,10 @@ target_compile_features(
   PUBLIC cxx_std_20
 )
 
-find_package(fmt REQUIRED)
 find_package(Threads REQUIRED)
 target_link_libraries(
   ngl-tbc-samples-rps_lib
   PUBLIC ngl-tbc_lib
-  PRIVATE fmt::fmt
   PRIVATE Threads::Threads
 )
 
