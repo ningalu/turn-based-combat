@@ -169,7 +169,7 @@ public:
   }
 
   void RunTurn(TBattle &battle) {
-    ResolveEvent<DefaultEvents::TurnStart>({}, battle);
+    ResolveEvent<DefaultEvents::ScheduleStart>({}, battle);
 
     while ((!battle.current_turn_schedule.Empty()) && (!battle.HasEnded())) {
       const auto actionable = battle.current_turn_schedule.order.at(0);
@@ -213,7 +213,7 @@ public:
 
     // TODO: temp, figure out how to control post battle effects
     if (!battle.HasEnded()) {
-      ResolveEvent<DefaultEvents::TurnEnd>({}, battle);
+      ResolveEvent<DefaultEvents::ScheduleEnd>({}, battle);
     }
   }
 
