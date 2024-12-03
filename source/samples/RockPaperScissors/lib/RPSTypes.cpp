@@ -24,17 +24,16 @@ namespace ngl::tbc::sample::rps {
   return std::nullopt;
 }
 
-using ValidationRes = std::pair<std::optional<std::vector<CmdPayload>>, CmdResult>;
-[[nodiscard]] std::pair<std::optional<std::vector<CmdPayload>>, CmdResult> ValidateCommands([[maybe_unused]] std::size_t player, const std::vector<CmdPayload> &commands, [[maybe_unused]] const Game &battle) {
+[[nodiscard]] CmdResponse ValidateCommands([[maybe_unused]] std::size_t player, const std::vector<CmdPayload> &commands, [[maybe_unused]] const Game &battle) {
 
   if (commands.size() != 1) {
-    return ValidationRes{std::nullopt, CmdResult{false}};
+    return CmdResponse{false, false};
   }
 
   const auto play = std::get<RPSCommand>(commands.front());
   assert((play.play == Play::ROCK) || (play.play == Play::PAPER) || (play.play == Play::SCISSORS));
 
-  return ValidationRes{commands, CmdResult{true}};
+  return CmdResponse{true, std::nullopt};
 }
 
 [[nodiscard]] Schedule GenerateSchedule([[maybe_unused]] Game &battle, [[maybe_unused]] const std::vector<Cmd> &buffered_commands, [[maybe_unused]] std::size_t turn) {

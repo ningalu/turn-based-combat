@@ -59,16 +59,16 @@ namespace ngl::tbc::sample::nac {
   return out;
 }
 
-[[nodiscard]] std::pair<std::optional<std::vector<CommandPayload>>, CommandResult> ValidateCommands([[maybe_unused]] std::size_t player, const std::vector<CommandPayload> &commands, const Game &battle) {
+[[nodiscard]] CommandResponse ValidateCommands([[maybe_unused]] std::size_t player, const std::vector<CommandPayload> &commands, const Game &battle) {
   if (commands.size() != 1) {
-    return std::pair{std::optional<std::vector<CommandPayload>>{std::nullopt}, CommandResult{false}};
+    return CommandResponse{false, false};
   }
 
   const auto &[x, y] = std::get<NACCommand>(commands.at(0));
   if (battle.state.board[x][y] != std::nullopt) {
-    return std::pair{std::optional<std::vector<CommandPayload>>{std::nullopt}, CommandResult{false}};
+    return CommandResponse{false, false};
   }
-  return std::pair{std::optional<std::vector<CommandPayload>>{std::vector{commands.at(0)}}, CommandResult{true}};
+  return CommandResponse{true, std::nullopt};
 }
 
 [[nodiscard]] Schedule GenerateSchedule([[maybe_unused]] const Game &battle, [[maybe_unused]] const std::vector<Command> &buffered_commands, [[maybe_unused]] std::size_t turn) {
