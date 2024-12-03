@@ -13,6 +13,7 @@
 
 #include "tbc/Actionable.hpp"
 #include "tbc/Command.hpp"
+#include "tbc/CommandResponse.hpp"
 #include "tbc/Comms.hpp"
 #include "tbc/Log.h"
 #include "tbc/PlayerCommandRequest.hpp"
@@ -24,28 +25,29 @@ namespace ngl::tbc {
 template <
   typename TState,
   typename TCommand,
-  typename TCommandResult,
+  typename TCommandError,
   typename TEvent,
   SimultaneousActionStrategy TSimultaneousActionStrategy>
 class Battle {
 public:
-  using TBattle                = Battle<TState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
-  using TComms                 = Comms<TBattle, TCommand, TCommandResult>;
-  using TPlayerComms           = PlayerComms<TBattle, TCommand, TCommandResult>;
+  using TBattle                = Battle<TState, TCommand, TCommandError, TEvent, TSimultaneousActionStrategy>;
+  using TComms                 = Comms<TBattle, TCommand, TCommandError>;
+  using TPlayerComms           = PlayerComms<TBattle, TCommand, TCommandError>;
   using TCommandPayloadTypeSet = typename TCommand::PayloadTypeSet;
   using TPlayerCommandRequest  = PlayerCommandRequest<TCommand>;
+  using TCommandResponse       = CommandResponse<TCommandError>;
   using TActionable            = Actionable<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TSchedule              = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TCommandPayload        = typename TCommand::Payload;
 
   // TODO: this probably shouldnt return a valid set of commands anymore, just a status? or pairs of commands it saw and the related status
-  using TCommandValidator        = std::function<std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult>(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
+  using TCommandValidator        = std::function<TCommandResponse(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
   using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
   using State         = TState;
   using Command       = TCommand;
-  using CommandResult = TCommandResult;
+  using CommandResult = TCommandError;
   using Event         = TEvent;
 
   constexpr static auto SimultaneousActionStrategy = TSimultaneousActionStrategy;
@@ -74,7 +76,7 @@ public:
   }
 
   // TODO: is there actually any meaningful domain-agnostic validation that can be done here?
-  [[nodiscard]] std::pair<std::optional<std::vector<TCommandPayload>>, TCommandResult> ValidateCommands(std::size_t authority, const std::vector<TCommandPayload> &commands) const {
+  [[nodiscard]] TCommandResponse ValidateCommands(std::size_t authority, const std::vector<TCommandPayload> &commands) const {
     assert(command_validator);
     return command_validator(authority, commands, *this);
   }
@@ -111,17 +113,15 @@ public:
       // Async poll each player for static commands, rejecting and repolling if any are invalid
       action_handles.push_back(std::async(std::launch::async, [=, this]() {
         std::optional<std::vector<TCommandPayload>> payloads;
-        TCommandResult result;
 
         for (std::size_t i = 0; i < attempts; i++) {
           const auto incoming_payloads = comms_.players.at(player).RequestCommands(valid_commands, *this).get();
           auto validation_result       = validator ? validator(player, incoming_payloads, *this) : ValidateCommands(player, incoming_payloads);
 
           // Clang can't capture structured bindings in closures; assign
-          payloads = validation_result.first;
-          result   = validation_result.second;
-          comms_.players.at(player).RespondToCommands(result);
-          if (payloads.has_value()) {
+          comms_.players.at(player).RespondToCommands(validation_result);
+          if (validation_result.pass) {
+            payloads = incoming_payloads;
             break;
           }
         }

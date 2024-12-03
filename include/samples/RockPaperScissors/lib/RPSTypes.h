@@ -24,11 +24,12 @@ struct RPSCommand {
 
 [[nodiscard]] std::optional<RPSCommand> from_str(const std::string &str);
 
-using RPS          = BattleTypes<RPSState, Command<RPSCommand>, CommandResult<bool>, Event<>, SimultaneousActionStrategy::ENABLED>;
+using RPS          = BattleTypes<RPSState, Command<RPSCommand>, bool, Event<>, SimultaneousActionStrategy::ENABLED>;
 using Game         = RPS::TBattle;
 using Cmd          = RPS::TCommand;
 using CmdPayload   = RPS::TCommandPayload;
-using CmdResult    = RPS::TCommandResult;
+using CmdError     = RPS::TCommandError;
+using CmdResponse  = RPS::TCommandResponse;
 using Schedule     = RPS::TSchedule;
 using Scheduler    = RPS::TScheduler;
 using Act          = RPS::TAction;
@@ -37,8 +38,7 @@ using EffectResult = RPS::TEffectResult;
 using Player       = RPS::TPlayerComms;
 using Actable      = RPS::TActionable;
 
-// TODO: THIS SUCKS
-[[nodiscard]] std::pair<std::optional<std::vector<CmdPayload>>, CmdResult> ValidateCommands(std::size_t player, const std::vector<CmdPayload> &commands, const Game &battle);
+[[nodiscard]] CmdResponse ValidateCommands(std::size_t player, const std::vector<CmdPayload> &commands, const Game &battle);
 [[nodiscard]] Schedule GenerateSchedule(Game &battle, const std::vector<Cmd> &buffered_commands, std::size_t turn);
 [[nodiscard]] Act TranslateAction(const std::vector<Cmd> &command, const Game &battle_arg);
 

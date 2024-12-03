@@ -38,10 +38,10 @@ struct ActionTranslatorHelper<TCommand, SimultaneousActionStrategy::ENABLED> {
 };
 } // namespace detail
 
-template <typename TState, typename TCommand, typename TCommandResult, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
+template <typename TState, typename TCommand, typename TCommandError, typename TEvent, SimultaneousActionStrategy TSimultaneousActionStrategy>
 class Scheduler {
   using TCommandPayload = typename TCommand::Payload;
-  using TBattle         = Battle<TState, TCommand, TCommandResult, TEvent, TSimultaneousActionStrategy>;
+  using TBattle         = Battle<TState, TCommand, TCommandError, TEvent, TSimultaneousActionStrategy>;
   using TSchedule       = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TEffect         = Effect<TBattle, TCommand, TEvent>;
   using TAction         = Action<TBattle, TCommand, TEvent>;

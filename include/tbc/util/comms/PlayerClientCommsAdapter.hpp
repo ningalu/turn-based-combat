@@ -9,7 +9,7 @@ namespace ngl::tbc::comms {
 template <typename TBattle>
 class PlayerClientCommsAdapter {
   using TCommand           = typename TBattle::Command;
-  using TCommandResult     = typename TBattle::CommandResult;
+  using TCommandError      = typename TBattle::CommandResult;
   using TCommandPayload    = typename TCommand::Payload;
   using TCommandPayloadSet = typename TCommand::PayloadTypeSet;
   using TPlayerComms       = typename TBattle::TPlayerComms;
@@ -26,7 +26,7 @@ public:
         }
       };
       player.SetResponseHandler(
-        [&proxy](const TCommandResult &result) {
+        [&proxy](const TCommandError &result) {
           proxy.CommsResponseCallback(result);
         }
 

@@ -15,15 +15,6 @@ struct Command {
   Payload payload;
 };
 
-// This isn't necessarily a variant of many types; the error type could be
-// a simple enum/value or a union of error types, and the result may apply
-// at the granularity of the entire response or to each Command received
-// TODO: is there even any domain-agnostic data to put here or could
-// PlayerComms be templated directly on some domain specific type?
-template <typename TResult>
-struct CommandResult {
-  TResult payload;
-};
 } // namespace ngl::tbc
 
 #endif

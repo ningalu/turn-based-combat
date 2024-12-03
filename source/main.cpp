@@ -26,7 +26,7 @@ struct ScissorsCommand {};
 using MyCommands       = ngl::tbc::Command<RockCommand, PaperCommand, ScissorsCommand>;
 using MyCommandPayload = MyCommands::Payload;
 
-using MyCommandResult = ngl::tbc::CommandResult<bool>;
+using MyCommandError = bool;
 
 struct MyBattleState {
   int p1_state, p2_state;
@@ -35,11 +35,13 @@ struct MyBattleState {
 
 using MyEvents = ngl::tbc::Event<int, double>;
 
-using MyBattleTypes = ngl::tbc::BattleTypes<MyBattleState, MyCommands, MyCommandResult, MyEvents>;
+using MyBattleTypes = ngl::tbc::BattleTypes<MyBattleState, MyCommands, MyCommandError, MyEvents>;
 
 using MyBattle       = MyBattleTypes::TBattle;
 using MyScheduler    = MyBattleTypes::TScheduler;
 using MyEventHandler = MyBattleTypes::TEventHandler;
+
+using MyCommandResponse = MyBattleTypes::TCommandResponse;
 
 using MyEffect = MyBattleTypes::TEffect;
 
@@ -141,9 +143,8 @@ std::function<std::vector<MyCommandPayload>(const MyCmdSet &, const MyBattle &)>
   };
 }
 
-auto default_validator = []([[maybe_unused]] std::size_t unused1, const std::vector<MyCommandPayload> &payload, [[maybe_unused]] const MyBattle &unused2) -> std::pair<std::optional<std::vector<MyCommandPayload>>, MyCommandResult> {
-  const std::optional<std::vector<MyCommandPayload>> out{payload};
-  return std::pair{out, MyCommandResult{true}};
+auto default_validator = []([[maybe_unused]] std::size_t unused1, [[maybe_unused]] const std::vector<MyCommandPayload> &payload, [[maybe_unused]] const MyBattle &unused2) {
+  return MyCommandResponse{true, std::nullopt};
 };
 
 auto default_translator = [](const MyCommands &command, [[maybe_unused]] const MyBattle &unused) {

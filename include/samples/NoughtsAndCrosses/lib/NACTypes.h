@@ -22,17 +22,18 @@ struct NACState {
   [[nodiscard]] std::string str() const;
 };
 
-using NACTypes       = BattleTypes<NACState, Command<NACCommand>, CommandResult<bool>, Event<>>;
-using Game           = NACTypes::TBattle;
-using Command        = NACTypes::TCommand;
-using CommandPayload = NACTypes::TCommandPayload;
-using CommandResult  = NACTypes::TCommandResult;
-using Scheduler      = NACTypes::TScheduler;
-using Schedule       = NACTypes::TSchedule;
-using Action         = NACTypes::TAction;
-using EffectResult   = NACTypes::TEffectResult;
+using NACTypes        = BattleTypes<NACState, Command<NACCommand>, bool, Event<>>;
+using Game            = NACTypes::TBattle;
+using Command         = NACTypes::TCommand;
+using CommandError    = NACTypes::TCommandError;
+using CommandPayload  = NACTypes::TCommandPayload;
+using CommandResponse = NACTypes::TCommandResponse;
+using Scheduler       = NACTypes::TScheduler;
+using Schedule        = NACTypes::TSchedule;
+using Action          = NACTypes::TAction;
+using EffectResult    = NACTypes::TEffectResult;
 
-[[nodiscard]] std::pair<std::optional<std::vector<CommandPayload>>, CommandResult> ValidateCommands(std::size_t player, const std::vector<CommandPayload> &commands, const Game &battle);
+[[nodiscard]] CommandResponse ValidateCommands(std::size_t player, const std::vector<CommandPayload> &commands, const Game &battle);
 
 [[nodiscard]] Schedule GenerateSchedule(const Game &battle, const std::vector<Command> &buffered_commands, std::size_t turn);
 

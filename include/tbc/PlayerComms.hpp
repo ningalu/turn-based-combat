@@ -5,16 +5,18 @@
 #include <future>
 #include <string>
 
+#include "tbc/CommandResponse.hpp"
 #include "tbc/Log.h"
 
 namespace ngl::tbc {
-template <typename TBattle, typename TCommand, typename TCommandResult>
+template <typename TBattle, typename TCommand, typename TCommandError>
 class PlayerComms {
 public:
   using TPayload                = typename TCommand::Payload;
   using TPayloadTypeSet         = typename TCommand::PayloadTypeSet;
+  using TCommandResponse        = CommandResponse<TCommandError>;
   using TRequestCommandHandler  = std::function<std::vector<TPayload>(const TPayloadTypeSet &, const TBattle &)>;
-  using TCommandResponseHandler = std::function<void(const TCommandResult &)>;
+  using TCommandResponseHandler = std::function<void(const TCommandResponse &)>;
 
   PlayerComms(std::string name, TRequestCommandHandler request_handler)
       : name_{std::move(name)},
@@ -26,7 +28,7 @@ public:
   }
 
   void SetResponseHandler(const TCommandResponseHandler &handler) { response_handler_ = handler; }
-  void RespondToCommands(const TCommandResult &res) const {
+  void RespondToCommands(const TCommandResponse &res) const {
     if (response_handler_) {
       response_handler_(res);
     }
