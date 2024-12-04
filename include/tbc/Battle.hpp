@@ -40,8 +40,8 @@ public:
   using TSchedule              = Schedule<TCommand, TEvent, TSimultaneousActionStrategy>;
   using TCommandPayload        = typename TCommand::Payload;
 
-  // TODO: this probably shouldnt return a valid set of commands anymore, just a status? or pairs of commands it saw and the related status
-  using TCommandValidator        = std::function<TCommandResponse(std::size_t, std::vector<TCommandPayload>, const TBattle &)>;
+  using TCommandPreprocessor     = std::function<std::vector<TCommandPayload>(std::size_t, const std::vector<TCommandPayload> &, TBattle)>;
+  using TCommandValidator        = std::function<TCommandResponse(std::size_t, const std::vector<TCommandPayload> &, const TBattle &)>;
   using TCommandOrderer          = std::function<std::vector<TCommand>(const std::vector<TCommand> &, const TBattle &)>;
   using TTurnStartCommandChecker = std::function<TCommandPayloadTypeSet(std::size_t, const TBattle &)>;
 
@@ -58,6 +58,7 @@ public:
   std::vector<std::vector<TCommand>> queued_commands;
   TSchedule current_turn_schedule;
 
+  TCommandPreprocessor command_preprocessor;
   TCommandValidator command_validator;
   TCommandOrderer command_orderer;
 
@@ -73,6 +74,10 @@ public:
 
   void SetCommandValidator(const TCommandValidator &validator) {
     command_validator = validator;
+  }
+
+  [[nodiscard]] std::vector<TCommandPayload> PreprocessCommands(std::size_t authority, const std::vector<TCommandPayload> &commands) const {
+    return command_preprocessor ? command_preprocessor(authority, commands, *this) : commands;
   }
 
   // TODO: is there actually any meaningful domain-agnostic validation that can be done here?
@@ -115,8 +120,9 @@ public:
         std::optional<std::vector<TCommandPayload>> payloads;
 
         for (std::size_t i = 0; i < attempts; i++) {
-          const auto incoming_payloads = comms_.players.at(player).RequestCommands(valid_commands, *this).get();
-          auto validation_result       = validator ? validator(player, incoming_payloads, *this) : ValidateCommands(player, incoming_payloads);
+          const auto incoming_payloads     = comms_.players.at(player).RequestCommands(valid_commands, *this).get();
+          const auto preprocessed_commands = PreprocessCommands(player, incoming_payloads);
+          const auto validation_result     = validator ? validator(player, preprocessed_commands, *this) : ValidateCommands(player, preprocessed_commands);
 
           // Clang can't capture structured bindings in closures; assign
           comms_.players.at(player).RespondToCommands(validation_result);
