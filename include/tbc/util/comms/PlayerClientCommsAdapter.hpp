@@ -10,6 +10,7 @@ template <typename TBattle>
 class PlayerClientCommsAdapter {
   using TCommand           = typename TBattle::Command;
   using TCommandError      = typename TBattle::CommandResult;
+  using TCommandResponse   = typename TBattle::TCommandResponse;
   using TCommandPayload    = typename TCommand::Payload;
   using TCommandPayloadSet = typename TCommand::PayloadTypeSet;
   using TPlayerComms       = typename TBattle::TPlayerComms;
@@ -26,7 +27,7 @@ public:
         }
       };
       player.SetResponseHandler(
-        [&proxy](const TCommandError &result) {
+        [&proxy](const TCommandResponse &result) {
           proxy.CommsResponseCallback(result);
         }
 

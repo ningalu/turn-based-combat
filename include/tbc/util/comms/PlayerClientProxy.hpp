@@ -10,6 +10,7 @@ template <typename TBattle>
 class PlayerClientProxy {
   using TCommand           = typename TBattle::Command;
   using TCommandError      = typename TBattle::CommandResult;
+  using TCommandResponse   = typename TBattle::TCommandResponse;
   using TCommandPayload    = typename TCommand::Payload;
   using TCommandPayloadSet = typename TCommand::PayloadTypeSet;
 
@@ -19,7 +20,7 @@ public:
     return valid_payloads_.has_value();
   }
 
-  [[nodiscard]] TCommandError ProvideCommands(const std::vector<TCommandPayload> &payloads) {
+  [[nodiscard]] TCommandResponse ProvideCommands(const std::vector<TCommandPayload> &payloads) {
     {
       std::unique_lock<std::mutex> request_lock(request_mutex_);
       request_ = payloads;
@@ -48,7 +49,7 @@ public:
     return out;
   }
 
-  void CommsResponseCallback(const TCommandError &result) {
+  void CommsResponseCallback(const TCommandResponse &result) {
     std::unique_lock<std::mutex> lock(response_mutex_);
     response_ = result;
     response_ready_.notify_all();
@@ -62,7 +63,7 @@ protected:
 
   std::mutex response_mutex_;
   std::condition_variable response_ready_;
-  std::optional<TCommandError> response_;
+  std::optional<TCommandResponse> response_;
 };
 
 } // namespace ngl::tbc::comms

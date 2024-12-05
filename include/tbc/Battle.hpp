@@ -127,7 +127,7 @@ public:
           // Clang can't capture structured bindings in closures; assign
           comms_.players.at(player).RespondToCommands(validation_result);
           if (validation_result.pass) {
-            payloads = incoming_payloads;
+            payloads = preprocessed_commands;
             break;
           }
         }
